@@ -1,0 +1,6 @@
+.aws-sam/
+.coverage
+.pytest_cache
+**/.DS_Store
+lambda/**/__pycache__
+venv/
