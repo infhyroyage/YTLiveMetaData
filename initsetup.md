@@ -35,13 +35,13 @@ aws cloudformation deploy \
   --template-file templates/cfn.yml \
   --stack-name ytlivemetadata-stack-pipeline \
   --parameter-overrides \
-    ArtifactS3BucketName={決定したS3バケット名} \
-    GitHubOwnerName={GitHubユーザー名} \
-    GitHubPAT={作成したGitHubパーソナルアクセストークン} \
-    GitHubRepositoryName={フォークしたリポジトリ名} \
-    YouTubeApiKey={YouTube Data API v3のAPIキー} \
-    YouTubeChannelId={監視対象のYouTubeチャンネルID} \
-    SmsPhoneNumber={SMS通知先の電話番号(国際形式)} \
+    ArtifactS3BucketName="{決定したS3バケット名}" \
+    GitHubOwnerName="{GitHubユーザー名}" \
+    GitHubPAT="{作成したGitHubパーソナルアクセストークン}" \
+    GitHubRepositoryName="{フォークしたリポジトリ名}" \
+    YouTubeApiKey="{YouTube Data API v3のAPIキー}" \
+    YouTubeChannelId="{監視対象のYouTubeチャンネルID}" \
+    SmsPhoneNumber="{SMS通知先の電話番号(国際形式)}" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 ```
 
