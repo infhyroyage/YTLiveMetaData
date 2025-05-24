@@ -1,0 +1,28 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - pip install -U pip
+      - pip install -r requirements.txt
+
+  pre_build:
+    commands:
+      - pytest --cov=lambda --cov-report=term-missing --cov-fail-under=80 lambda/tests
+      - pylint lambda/**/*.py
+
+  build:
+    commands:
+      - sam build --template templates/sam.yml
+      - sam package --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged.yaml
+
+artifacts:
+  files:
+    - packaged.yaml
+  discard-paths: no
+
+cache:
+  paths:
+    - "/root/.cache/pip/**/*"

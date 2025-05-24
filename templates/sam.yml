@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: YouTube Live Metadata Notification - Serverless Application AWS Resources
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 120
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: ytlivemetadata
+        LOG_LEVEL: INFO
+
+Resources:
+  # CloudWatch Logs for API Gateway
+  ApiGatewayLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/apigateway/ytlivemetadata-apig
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Send SMS Notifications
+  NotifyLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-notify
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Renew Google PubSubHubbub Subscription
+  WebSubLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
+      RetentionInDays: 90
+
+  # DynamoDB Table
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ytlivemetadata-dynamodb
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: video_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: video_id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # SNS Topic for SMS Notifications
+  SnsTopicForSms:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: ytlivemetadata-sns
+      DisplayName: YouTube Live Metadata Notifications
+
+  # Lambda Function to Send SMS Notifications
+  NotifyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ytlivemetadata-lambda-notify
+      CodeUri: ../lambda/notify/
+      Handler: app.lambda_handler
+      Description: Process YouTube Live Stream Notifications and Send SMS
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt DynamoDBTable.Arn
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref SnsTopicForSms
+            - Effect: Allow
+              Action:
+                - ssm:DescribeParameters
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/*"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTable
+          SNS_TOPIC_ARN: !Ref SnsTopicForSms
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /notify
+            Method: post
+            RestApiId: !Ref ApiGateway
+      LoggingConfig:
+        LogGroup: !Ref NotifyLambdaFunctionLogs
+
+  # Lambda Function to Renew Google PubSubHubbub Subscription
+  WebSubLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ytlivemetadata-lambda-websub
+      CodeUri: ../lambda/websub/
+      Handler: app.lambda_handler
+      Description: Renew Google PubSubHubbub Subscription
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:DescribeParameters
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:PutParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub/*"
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(7 days)
+            Name: ytlivemetadata-ebrule-websub
+            Description: Schedule to Refresh Google PubSubHubbub Subscription Before It Expires
+      LoggingConfig:
+        LogGroup: !Ref WebSubLambdaFunctionLogs
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: ytlivemetadata-apig
+      StageName: prod
+      EndpointConfiguration:
+        Type: REGIONAL
+      Auth:
+        DefaultAuthorizer: NONE
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiGatewayLogs.Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod", "routeKey":"$context.routeKey", "status":"$context.status", "protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
+
+  # Systems Manager Parameter for Google PubSubHubbub Callback URL
+  WebSubCallbackUrlSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ytlivemetadata/websub/callback_url
+      Type: String
+      Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/notify
+      Description: Google PubSubHubbub Callback URL

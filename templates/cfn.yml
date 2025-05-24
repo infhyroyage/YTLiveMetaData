@@ -1,0 +1,346 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: YouTube Live Metadata Notification - CI/CD Pipeline AWS Resources
+
+Parameters:
+  ArtifactS3BucketName:
+    Type: String
+    Description: S3 Bucket Name for CodeBuild Artifact
+
+  GitHubBranchName:
+    Type: String
+    Description: GitHub Repository Branch Name
+
+  GitHubOwnerName:
+    Type: String
+    Description: GitHub Repository Owner Name
+
+  GitHubPAT:
+    Type: String
+    Description: GitHub Personal Access Token
+    NoEcho: true
+
+  GitHubRepositoryName:
+    Type: String
+    Description: GitHub Repository Name
+
+  YouTubeApiKey:
+    Type: String
+    Description: API Key for YouTube Data API v3
+    NoEcho: true
+
+  YouTubeChannelId:
+    Type: String
+    Description: YouTube Channel ID to Monitor for Live Streams
+
+  SmsPhoneNumber:
+    Type: String
+    Description: Phone Number for SMS Notifications
+    NoEcho: true
+
+Resources:
+  # Systems Manager Parameter for YouTube Data API Key
+  YouTubeApiKeySSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ytlivemetadata/youtube/api_key
+      Type: SecureString
+      Value: !Ref YouTubeApiKey
+      Description: API Key for YouTube Data API v3
+
+  # Systems Manager Parameter for YouTube Channel ID
+  YouTubeChannelIdSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ytlivemetadata/youtube/channel_id
+      Type: String
+      Value: !Ref YouTubeChannelId
+      Description: YouTube Channel ID to Monitor for Live Streams
+
+  # Systems Manager Parameter for SMS Phone Number
+  SmsPhoneNumberSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ytlivemetadata/sms/phone_number
+      Type: SecureString
+      Value: !Ref SmsPhoneNumber
+      Description: Phone Number for SMS Notifications
+
+  # S3 Bucket for CodeBuild Artifact
+  ArtifactS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ArtifactS3BucketName
+      Description: S3 Bucket to Store CodeBuild Artifact
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+    DeletionPolicy: Retain
+
+  # S3 Bucket Policy for CodeBuild Artifact
+  ArtifactS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyUnEncryptedObjectUploads
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:PutObject"
+            Resource: !Sub "${ArtifactS3Bucket.Arn}/*"
+            Condition:
+              StringNotEquals:
+                "s3:x-amz-server-side-encryption": "AES256"
+
+  # IAM Role for AWS CodeBuild
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: CodeBuildArtifactAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:GetObjectVersion"
+                Resource: !Sub "${ArtifactS3Bucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - "s3:ListBucket"
+                  - "s3:GetBucketLocation"
+                Resource: !GetAtt ArtifactS3Bucket.Arn
+        - PolicyName: CodeBuildCloudWatchLogsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*:*"
+
+  # AWS CodeBuild
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: "ytlivemetadata-build"
+      Description: Build Project for YouTube Live Metadata Notification
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
+        PrivilegedMode: false
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+      TimeoutInMinutes: 10
+
+  # IAM Role for AWS CodePipeline
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: CodePipelineArtifactAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:GetBucketVersioning"
+                Resource:
+                  - !GetAtt ArtifactS3Bucket.Arn
+                  - !Sub "${ArtifactS3Bucket.Arn}/*"
+        - PolicyName: CodePipelineCodeBuildExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "codebuild:BatchGetBuilds"
+                  - "codebuild:StartBuild"
+                Resource: !GetAtt BuildProject.Arn
+        - PolicyName: CodePipelineCloudFormationExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "cloudformation:CreateStack"
+                  - "cloudformation:DeleteStack"
+                  - "cloudformation:DescribeStacks"
+                  - "cloudformation:UpdateStack"
+                  - "cloudformation:CreateChangeSet"
+                  - "cloudformation:DeleteChangeSet"
+                  - "cloudformation:DescribeChangeSet"
+                  - "cloudformation:ExecuteChangeSet"
+                  - "cloudformation:SetStackPolicy"
+                  - "cloudformation:ValidateTemplate"
+                  - "cloudformation:GetTemplate"
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/ytlivemetadata-stack-sam/*"
+        - PolicyName: CodePipelineGitHubConnectionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "codestar-connections:UseConnection"
+                Resource: "*"
+        - PolicyName: CodePipelineIAMPassRolePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "iam:PassRole"
+                Resource: !GetAtt CloudFormationExecutionRole.Arn
+
+  # AWS CloudFormation Execution Role
+  CloudFormationExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: CloudFormationResourceAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "apigateway:*"
+                Resource: # TODO: API GatewayのAPIを特定したら、具体的なリソースARNに制限する
+                  - !Sub "arn:aws:apigateway:${AWS::Region}::*"
+              - Effect: Allow
+                Action: "logs:*"
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/apigateway/ytlivemetadata-apig"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/apigateway/ytlivemetadata-apig:*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-notify"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-notify:*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-websub"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-websub:*"
+              - Effect: Allow
+                Action: "dynamodb:*"
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/ytlivemetadata-dynamodb"
+              - Effect: Allow
+                Action: "events:*"
+                Resource:
+                  - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/ytlivemetadata-ebrule-websub"
+              - Effect: Allow
+                Action: "iam:*"
+                Resource:
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-notify-*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-websub-*"
+              - Effect: Allow
+                Action: "lambda:*"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-notify"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-websub"
+              - Effect: Allow
+                Action: "sns:*"
+                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ytlivemetadata-sns"
+              - Effect: Allow
+                Action: "ssm:*"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/*"
+        - PolicyName: CloudFormationIAMPassRolePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "iam:PassRole"
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    "iam:PassedToService":
+                      - "lambda.amazonaws.com"
+                      - "apigateway.amazonaws.com"
+
+  # AWS CodePipeline
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: "ytlivemetadata-pipeline"
+      Description: CI/CD Pipeline for YouTube Live Metadata Notification
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactS3Bucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              Configuration:
+                Owner: !Ref GitHubOwnerName
+                Repo: !Ref GitHubRepositoryName
+                Branch: !Ref GitHubBranchName
+                OAuthToken: !Ref GitHubPAT
+              OutputArtifacts:
+                - Name: SourceCode
+        - Name: Build
+          Actions:
+            - Name: TestAndBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref BuildProject
+              InputArtifacts:
+                - Name: SourceCode
+              OutputArtifacts:
+                - Name: BuildOutput
+        - Name: Deploy
+          Actions:
+            - Name: DeployToCloudFormation
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: "1"
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                StackName: ytlivemetadata-stack-sam
+                TemplatePath: BuildOutput::packaged.yaml
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationExecutionRole.Arn
+              InputArtifacts:
+                - Name: BuildOutput
