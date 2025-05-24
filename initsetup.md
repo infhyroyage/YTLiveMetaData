@@ -26,7 +26,30 @@
    - デベロッパーの連絡先情報: 有効なメールアドレス
 5. 作成したプロジェクトに対し、認証情報ページで YouTube Data API v3 のみ許可を与えた API キーを新しく作成し、手元に控える
 
-### 3. CI/CD 用 CloudFormation テンプレートのデプロイ
+### 3. 機密情報の SSM パラメータ作成
+
+機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)を、 AWS Systems Manager Parameter Store に保存する:
+
+```bash
+aws ssm put-parameter \
+  --name "/ytlivemetadata/youtube/api_key" \
+  --value "{YouTube Data API v3のAPIキー}" \
+  --type "SecureString" \
+  --description "API Key for YouTube Data API v3"
+aws ssm put-parameter \
+  --name "/ytlivemetadata/notify/phone_number" \
+  --value "{SMS通知先の電話番号(国際形式)}" \
+  --type "SecureString" \
+  --description "Phone Number for SMS Notifications"
+```
+
+> [!IMPORTANT]  
+> `SmsPhoneNumber` は、国際形式(E.164 形式)で入力する。例えば、日本の場合は、以下のように国コード `+81` + 最初の `0` を除いた電話番号(ハイフンなし)を入力する。
+>
+> - 携帯電話 080-9876-5432 → `+818098765432`
+> - 固定電話 03-1234-5678 → `+81312345678`
+
+### 4. CI/CD 用 CloudFormation テンプレートのデプロイ
 
 リポジトリのルートディレクトリに移動して、以下のコマンドを実行し、CI/CD パイプライン用 CloudFormation スタックをデプロイする:
 
@@ -39,19 +62,11 @@ aws cloudformation deploy \
     GitHubOwnerName="{GitHubユーザー名}" \
     GitHubPAT="{作成したGitHubパーソナルアクセストークン}" \
     GitHubRepositoryName="{フォークしたリポジトリ名}" \
-    YouTubeApiKey="{YouTube Data API v3のAPIキー}" \
     YouTubeChannelId="{監視対象のYouTubeチャンネルID}" \
-    SmsPhoneNumber="{SMS通知先の電話番号(国際形式)}" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 ```
 
-> [!IMPORTANT]  
-> `SmsPhoneNumber` は、国際形式(E.164 形式)で入力する必要がある。例えば、日本の場合は、以下のように国コード `+81` + 最初の `0` を除いた電話番号(ハイフンなし)を入力する。
->
-> - 携帯電話 080-9876-5432 → `+818098765432`
-> - 固定電話 03-1234-5678 → `+81312345678`
-
-### 4. SAM テンプレートのデプロイ
+### 5. SAM テンプレートのデプロイ
 
 リポジトリのルートディレクトリに移動して、以下のコマンドを実行し、SAM テンプレートを手動デプロイする:
 
@@ -60,7 +75,7 @@ sam build --template templates/sam.yml
 sam deploy --stack-name ytlivemetadata-stack-sam --capabilities CAPABILITY_IAM
 ```
 
-### 5. Google PubSubHubbub Hub の初期設定
+### 6. Google PubSubHubbub Hub の初期設定
 
 Google PubSubHubbub Hub 登録のための Lambda 関数を実行する:
 
@@ -90,4 +105,11 @@ aws lambda invoke \
    aws cloudformation delete-stack --stack-name ytlivemetadata-stack-pipeline
    ```
 
-4. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する
+4. 機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)の SSM パラメータを削除する:
+
+   ```bash
+   aws ssm delete-parameter --name "/ytlivemetadata/youtube/api_key"
+   aws ssm delete-parameter --name "/ytlivemetadata/notify/phone_number"
+   ```
+
+5. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する

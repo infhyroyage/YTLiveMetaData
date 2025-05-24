@@ -145,22 +145,16 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
 
 コード品質と一貫性を確保するため、以下の実装規則に従う:
 
-- インフラストラクチャは全て Infrastructure as Code (IaC) で管理し、手動構成は行わない。本システムでは、目的に応じて複数のテンプレートファイルを使用する:
-
+- ほとんどのインフラストラクチャは Infrastructure as Code (IaC) で管理し、手動構成は行わない。本システムでは、目的に応じて複数のテンプレートファイルを使用する:
   - **`cfn.yml` (CloudFormation テンプレート)**: CI/CD パイプラインの AWS リソースを定義
-
     - Amazon S3
     - AWS CloudFormation
     - AWS CodeBuild
     - AWS CodePipeline
     - AWS Systems Manager Parameter Store
-      - YouTube Data API v3 の API キー
       - ライブ配信を購読するチャンネル ID
-      - SMS 通知の送信先電話番号
     - 上記 AWS リソースに必要な IAM ロール・IAM ポリシー
-
   - **`sam.yml` (SAM テンプレート)**: サーバーレスアプリケーションの実行環境の AWS リソースを定義
-
     - Amazon API Gateway
     - Amazon CloudWatch
     - Amazon DynamoDB
@@ -170,7 +164,9 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
     - AWS Systems Manager Parameter Store
       - API Gateway の`ytlivemetadata-lambda-notify`のエンドポイント
     - 上記 AWS リソースに必要な IAM ロール・IAM ポリシー
-
+- CloudFormation テンプレート・SAM テンプレートでは、SecureString タイプ(安全な文字列)の SSM パラメーターがサポートされていないため、以下の機密情報は IaC で管理せず、AWS CLI で事前作成する。
+  - YouTube Data API v3 の API キー
+  - SMS 通知の送信先電話番号
 - 初期セットアップのみ AWS CloudFormation を使用して手動でデプロイし、以下の AWS サービスを連携した CI/CD パイプラインを手動で構築する。この CI/CD パイプラインは、GitHub リポジトリの main ブランチへの commit をトリガーとして実行される。
 
   - **AWS CodeBuild**: `buildspec.yml`で定義したテスト・ビルド処理(依存関係解決、テスト実行、SAM パッケージング、S3 アップロード)

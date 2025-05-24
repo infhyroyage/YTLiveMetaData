@@ -19,39 +19,11 @@ Parameters:
     Type: String
     Description: GitHub Repository Name
 
-  SmsPhoneNumber:
-    Type: String
-    Description: Phone Number for SMS Notifications
-    NoEcho: true
-
-  YouTubeApiKey:
-    Type: String
-    Description: API Key for YouTube Data API v3
-    NoEcho: true
-
   YouTubeChannelId:
     Type: String
     Description: YouTube Channel ID to Monitor for Live Streams
 
 Resources:
-  # Systems Manager Parameter for Notify Lambda Function Phone Number
-  SmsPhoneNumberSSMParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /ytlivemetadata/notify/phone_number
-      Type: SecureString
-      Value: !Ref SmsPhoneNumber
-      Description: Phone Number for SMS Notifications
-
-  # Systems Manager Parameter for YouTube Data API Key
-  YouTubeApiKeySSMParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /ytlivemetadata/youtube/api_key
-      Type: SecureString
-      Value: !Ref YouTubeApiKey
-      Description: API Key for YouTube Data API v3
-
   # Systems Manager Parameter for YouTube Channel ID
   YouTubeChannelIdSSMParameter:
     Type: AWS::SSM::Parameter
@@ -66,7 +38,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref ArtifactS3BucketName
-      Description: S3 Bucket to Store CodeBuild Artifact
       VersioningConfiguration:
         Status: Enabled
       BucketEncryption:
@@ -289,7 +260,6 @@ Resources:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: "ytlivemetadata-pipeline"
-      Description: CI/CD Pipeline for YouTube Live Metadata Notification
       RoleArn: !GetAtt CodePipelineServiceRole.Arn
       ArtifactStore:
         Type: S3
