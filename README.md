@@ -7,3 +7,7 @@ YouTube でライブ配信を開始した直後に、そのライブ配信の開
 ## 技術スタック
 
 [technologystack.md](technologystack.md) 参照。
+
+## 初期セットアップ構築手順・削除手順
+
+[initsetup.md](initsetup.md) 参照。

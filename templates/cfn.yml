@@ -6,10 +6,6 @@ Parameters:
     Type: String
     Description: S3 Bucket Name for CodeBuild Artifact
 
-  GitHubBranchName:
-    Type: String
-    Description: GitHub Repository Branch Name
-
   GitHubOwnerName:
     Type: String
     Description: GitHub Repository Owner Name
@@ -23,6 +19,11 @@ Parameters:
     Type: String
     Description: GitHub Repository Name
 
+  SmsPhoneNumber:
+    Type: String
+    Description: Phone Number for SMS Notifications
+    NoEcho: true
+
   YouTubeApiKey:
     Type: String
     Description: API Key for YouTube Data API v3
@@ -32,12 +33,16 @@ Parameters:
     Type: String
     Description: YouTube Channel ID to Monitor for Live Streams
 
-  SmsPhoneNumber:
-    Type: String
-    Description: Phone Number for SMS Notifications
-    NoEcho: true
-
 Resources:
+  # Systems Manager Parameter for Notify Lambda Function Phone Number
+  SmsPhoneNumberSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ytlivemetadata/notify/phone_number
+      Type: SecureString
+      Value: !Ref SmsPhoneNumber
+      Description: Phone Number for SMS Notifications
+
   # Systems Manager Parameter for YouTube Data API Key
   YouTubeApiKeySSMParameter:
     Type: AWS::SSM::Parameter
@@ -55,15 +60,6 @@ Resources:
       Type: String
       Value: !Ref YouTubeChannelId
       Description: YouTube Channel ID to Monitor for Live Streams
-
-  # Systems Manager Parameter for SMS Phone Number
-  SmsPhoneNumberSSMParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /ytlivemetadata/sms/phone_number
-      Type: SecureString
-      Value: !Ref SmsPhoneNumber
-      Description: Phone Number for SMS Notifications
 
   # S3 Bucket for CodeBuild Artifact
   ArtifactS3Bucket:
@@ -310,7 +306,7 @@ Resources:
               Configuration:
                 Owner: !Ref GitHubOwnerName
                 Repo: !Ref GitHubRepositoryName
-                Branch: !Ref GitHubBranchName
+                Branch: main
                 OAuthToken: !Ref GitHubPAT
               OutputArtifacts:
                 - Name: SourceCode
