@@ -145,14 +145,12 @@ Resources:
   # API Gateway Account Configuration
   ApiGatewayAccount:
     Type: AWS::ApiGateway::Account
-    DependsOn: ApiGatewayCloudWatchLogsRole
     Properties:
       CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchLogsRole.Arn
 
   # API Gateway
   ApiGateway:
     Type: AWS::Serverless::Api
-    DependsOn: ApiGatewayAccount
     Properties:
       Name: ytlivemetadata-apig
       StageName: prod
