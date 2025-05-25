@@ -54,6 +54,23 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+          - Sid: AllowCodePipelineCodeBuildAndCloudFormationAccess
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt CodePipelineServiceRole.Arn
+                - !GetAtt CodeBuildServiceRole.Arn
+                - !GetAtt CloudFormationExecutionRole.Arn
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:GetObjectVersion"
+              - "s3:ListBucket"
+              - "s3:GetBucketLocation"
+              - "s3:GetBucketVersioning"
+            Resource:
+              - !GetAtt ArtifactS3Bucket.Arn
+              - !Sub "${ArtifactS3Bucket.Arn}/*"
           - Sid: DenyUnEncryptedObjectUploads
             Effect: Deny
             Principal: "*"
@@ -61,6 +78,10 @@ Resources:
             Resource: !Sub "${ArtifactS3Bucket.Arn}/*"
             Condition:
               StringNotEquals:
+                "aws:PrincipalArn":
+                  - !GetAtt CodePipelineServiceRole.Arn
+                  - !GetAtt CodeBuildServiceRole.Arn
+                  - !GetAtt CloudFormationExecutionRole.Arn
                 "s3:x-amz-server-side-encryption": "AES256"
 
   # IAM Role for AWS CodeBuild
@@ -75,21 +96,6 @@ Resources:
               Service: codebuild.amazonaws.com
             Action: "sts:AssumeRole"
       Policies:
-        - PolicyName: CodeBuildArtifactAccessPolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "s3:GetObject"
-                  - "s3:PutObject"
-                  - "s3:GetObjectVersion"
-                Resource: !Sub "${ArtifactS3Bucket.Arn}/*"
-              - Effect: Allow
-                Action:
-                  - "s3:ListBucket"
-                  - "s3:GetBucketLocation"
-                Resource: !GetAtt ArtifactS3Bucket.Arn
         - PolicyName: CodeBuildCloudWatchLogsPolicy
           PolicyDocument:
             Version: "2012-10-17"
@@ -115,11 +121,14 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
+        Image: aws/codebuild/amazonlinux-x86_64-standard:5.0
         PrivilegedMode: false
+        EnvironmentVariables:
+          - Name: ARTIFACT_BUCKET
+            Value: !Ref ArtifactS3Bucket
       Source:
         Type: CODEPIPELINE
-        BuildSpec: buildspec.yml
+        BuildSpec: templates/buildspec.yml
       TimeoutInMinutes: 10
 
   # IAM Role for AWS CodePipeline
@@ -134,19 +143,6 @@ Resources:
               Service: codepipeline.amazonaws.com
             Action: "sts:AssumeRole"
       Policies:
-        - PolicyName: CodePipelineArtifactAccessPolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "s3:GetObject"
-                  - "s3:PutObject"
-                  - "s3:GetObjectVersion"
-                  - "s3:GetBucketVersioning"
-                Resource:
-                  - !GetAtt ArtifactS3Bucket.Arn
-                  - !Sub "${ArtifactS3Bucket.Arn}/*"
         - PolicyName: CodePipelineCodeBuildExecutionPolicy
           PolicyDocument:
             Version: "2012-10-17"
@@ -207,17 +203,13 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: "apigateway:*"
-                Resource: # TODO: API GatewayのAPIを特定したら、具体的なリソースARNに制限する
-                  - !Sub "arn:aws:apigateway:${AWS::Region}::*"
-              - Effect: Allow
-                Action: "logs:*"
                 Resource:
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/apigateway/ytlivemetadata-apig"
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/apigateway/ytlivemetadata-apig:*"
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-notify"
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-notify:*"
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-websub"
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ytlivemetadata-lambda-websub:*"
+                  - !Sub "arn:aws:apigateway:${AWS::Region}::/restapis"
+                  - !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/*"
+                  - !Sub "arn:aws:apigateway:${AWS::Region}::/account"
+              - Effect: Allow
+                Action: "cloudformation:*"
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31"
               - Effect: Allow
                 Action: "dynamodb:*"
                 Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/ytlivemetadata-dynamodb"
@@ -230,11 +222,15 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-notify-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-websub-*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-stack-sam-*"
               - Effect: Allow
                 Action: "lambda:*"
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-notify"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-websub"
+              - Effect: Allow
+                Action: "logs:*"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
               - Effect: Allow
                 Action: "sns:*"
                 Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ytlivemetadata-sns"
