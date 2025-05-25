@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import secrets
 import traceback
 import urllib.parse
@@ -10,23 +11,12 @@ from typing import Any, Dict
 import boto3
 import requests
 
-# Google PubSubHubbub Hub のURL
-PUBSUBHUBBUB_HUB_URL = "https://pubsubhubbub.appspot.com/"
-
-# Google PubSubHubbub のリース期間(=10日間=828000秒)
-LEASE_SECONDS = 828000
-
-# HMACシークレットの長さ(=32バイト)
-HMAC_SECRET_LENGTH = 32
-
-# HMACシークレットのParameter Storeのパス
-HMAC_SECRET_PARAMETER_NAME = "/ytlivemetadata/hmac-secret"
-
-# チャンネルIDのParameter Storeのパス
-CHANNEL_ID_PARAMETER_NAME = "/ytlivemetadata/channel-id"
-
-# コールバックURLのParameter Storeのパス
-CALLBACK_URL_PARAMETER_NAME = "/ytlivemetadata/callback-url"
+PUBSUBHUBBUB_HUB_URL = os.environ["PUBSUBHUBBUB_HUB_URL"]
+LEASE_SECONDS = int(os.environ["LEASE_SECONDS"])
+HMAC_SECRET_LENGTH = int(os.environ["HMAC_SECRET_LENGTH"])
+WEBSUB_HMAC_SECRET_PARAMETER_NAME = os.environ["WEBSUB_HMAC_SECRET_PARAMETER_NAME"]
+YOUTUBE_CHANNEL_ID_PARAMETER_NAME = os.environ["YOUTUBE_CHANNEL_ID_PARAMETER_NAME"]
+WEBSUB_CALLBACK_URL_PARAMETER_NAME = os.environ["WEBSUB_CALLBACK_URL_PARAMETER_NAME"]
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -107,13 +97,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     try:
         # Parameter Store からチャンネルID・コールバックURLを取得
-        channel_id = get_parameter_value(CHANNEL_ID_PARAMETER_NAME)
-        callback_url = get_parameter_value(CALLBACK_URL_PARAMETER_NAME)
+        channel_id = get_parameter_value(YOUTUBE_CHANNEL_ID_PARAMETER_NAME)
+        callback_url = get_parameter_value(WEBSUB_CALLBACK_URL_PARAMETER_NAME)
 
         # 新しいHMACシークレットを生成してParameter Storeに保存
         hmac_secret = secrets.token_hex(HMAC_SECRET_LENGTH)
         ssm_client.put_parameter(
-            Name=HMAC_SECRET_PARAMETER_NAME,
+            Name=WEBSUB_HMAC_SECRET_PARAMETER_NAME,
             Value=hmac_secret,
             Type="SecureString",
             Overwrite=True,

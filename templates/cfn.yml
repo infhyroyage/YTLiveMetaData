@@ -28,7 +28,7 @@ Resources:
   YouTubeChannelIdSSMParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ytlivemetadata/youtube/channel_id
+      Name: /ytlivemetadata/youtube_channel_id
       Type: String
       Value: !Ref YouTubeChannelId
       Description: YouTube Channel ID to Monitor for Live Streams
@@ -204,9 +204,9 @@ Resources:
               - Effect: Allow
                 Action: "apigateway:*"
                 Resource:
+                  - !Sub "arn:aws:apigateway:${AWS::Region}::/account"
                   - !Sub "arn:aws:apigateway:${AWS::Region}::/restapis"
                   - !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/*"
-                  - !Sub "arn:aws:apigateway:${AWS::Region}::/account"
               - Effect: Allow
                 Action: "cloudformation:*"
                 Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31"

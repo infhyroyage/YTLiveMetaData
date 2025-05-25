@@ -80,6 +80,7 @@ Resources:
               Action:
                 - sns:Publish
               Resource: !Ref SnsTopicForSms
+            # TODO: SSM Parameter Storeのパラメータ権限を見直す
             - Effect: Allow
               Action:
                 - ssm:DescribeParameters
@@ -108,6 +109,14 @@ Resources:
       CodeUri: ../lambda/websub/
       Handler: app.lambda_handler
       Description: Renew Google PubSubHubbub Subscription
+      Environment:
+        Variables:
+          PUBSUBHUBBUB_HUB_URL: "https://pubsubhubbub.appspot.com/"
+          LEASE_SECONDS: "828000"
+          HMAC_SECRET_LENGTH: "32"
+          WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
+          YOUTUBE_CHANNEL_ID_PARAMETER_NAME: "/ytlivemetadata/youtube_channel_id"
+          WEBSUB_CALLBACK_URL_PARAMETER_NAME: "/ytlivemetadata/websub_callback_url"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -116,8 +125,14 @@ Resources:
                 - ssm:DescribeParameters
                 - ssm:GetParameter
                 - ssm:GetParameters
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_callback_url"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/youtube_channel_id"
+            - Effect: Allow
+              Action:
                 - ssm:PutParameter
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub/*"
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_hmac_secret"
       Events:
         ScheduleEvent:
           Type: Schedule
@@ -172,7 +187,7 @@ Resources:
   WebSubCallbackUrlSSMParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ytlivemetadata/websub/callback_url
+      Name: /ytlivemetadata/websub_callback_url
       Type: String
       Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/notify
       Description: Google PubSubHubbub Callback URL
