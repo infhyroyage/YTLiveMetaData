@@ -71,12 +71,10 @@ aws cloudformation deploy \
 
 ### 5. Google PubSubHubbub Hub の初期設定
 
-Google PubSubHubbub Hub 登録のための Lambda 関数を実行する:
+以下のコマンドを実行し、Lambda 関数`ytlivemetadata-lambda-websub`を手動実行して、Google PubSubHubbub Hub に登録する:
 
 ```bash
-aws lambda invoke \
-  --function-name ytlivemetadata-lambda-websub \
-  --region ap-northeast-1
+aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
 ```
 
 ## 削除手順

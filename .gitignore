@@ -3,4 +3,5 @@
 .pytest_cache
 **/.DS_Store
 lambda/**/__pycache__
+response.json
 venv/
