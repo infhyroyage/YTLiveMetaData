@@ -66,16 +66,10 @@ aws cloudformation deploy \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 ```
 
-### 5. SAM テンプレートのデプロイ
+> [!NOTE]  
+> このデプロイ完了直後に、CI/CD パイプラインである CodePipeline(`ytlivemetadata-stack-pipeline`) が自動実行し、SAM テンプレートによるサーバーレスアプリケーションの実行環境用 CloudFormation スタックのデプロイも自動実行する。この実行状況は、AWS マネジメントコンソールの CloudFormation のスタックから確認できる。
 
-リポジトリのルートディレクトリに移動して、以下のコマンドを実行し、SAM テンプレートを手動デプロイする:
-
-```bash
-sam build --template templates/sam.yml
-sam deploy --stack-name ytlivemetadata-stack-sam --capabilities CAPABILITY_IAM
-```
-
-### 6. Google PubSubHubbub Hub の初期設定
+### 5. Google PubSubHubbub Hub の初期設定
 
 Google PubSubHubbub Hub 登録のための Lambda 関数を実行する:
 
@@ -87,16 +81,16 @@ aws lambda invoke \
 
 ## 削除手順
 
-1. Amazon S3 バケット内のすべてのオブジェクトを削除する:
-
-   ```bash
-   aws s3 rm s3://{決定したS3バケット名} --recursive
-   ```
-
-2. SAM テンプレートでデプロイしたスタックを削除する:
+1. SAM テンプレートでデプロイしたスタックを削除する:
 
    ```bash
    aws cloudformation delete-stack --stack-name ytlivemetadata-stack-sam
+   ```
+
+2. Amazon S3 バケット内のすべてのオブジェクトを削除する:
+
+   ```bash
+   aws s3 rm s3://{決定したS3バケット名} --recursive
    ```
 
 3. CloudFormation テンプレートでデプロイしたスタックを削除する:
