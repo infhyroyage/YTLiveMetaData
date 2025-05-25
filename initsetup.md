@@ -32,19 +32,19 @@
 
 ```bash
 aws ssm put-parameter \
-  --name "/ytlivemetadata/youtube/api_key" \
+  --name "/ytlivemetadata/youtube_api_key" \
   --value "{YouTube Data API v3のAPIキー}" \
   --type "SecureString" \
   --description "API Key for YouTube Data API v3"
 aws ssm put-parameter \
-  --name "/ytlivemetadata/notify/phone_number" \
+  --name "/ytlivemetadata/phone_number" \
   --value "{SMS通知先の電話番号(国際形式)}" \
   --type "SecureString" \
   --description "Phone Number for SMS Notifications"
 ```
 
 > [!IMPORTANT]  
-> `SmsPhoneNumber` は、国際形式(E.164 形式)で入力する。例えば、日本の場合は、以下のように国コード `+81` + 最初の `0` を除いた電話番号(ハイフンなし)を入力する。
+> SMS 通知先の電話番号は、国際形式(E.164 形式)で入力する。例えば、日本の場合は、以下のように国コード `+81` + 最初の `0` を除いた電話番号(ハイフンなし)を入力する。
 >
 > - 携帯電話 080-9876-5432 → `+818098765432`
 > - 固定電話 03-1234-5678 → `+81312345678`
@@ -100,8 +100,8 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
 4. 機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)の SSM パラメータを削除する:
 
    ```bash
-   aws ssm delete-parameter --name "/ytlivemetadata/youtube/api_key"
-   aws ssm delete-parameter --name "/ytlivemetadata/notify/phone_number"
+   aws ssm delete-parameter --name "/ytlivemetadata/youtube_api_key"
+   aws ssm delete-parameter --name "/ytlivemetadata/phone_number"
    ```
 
 5. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する
