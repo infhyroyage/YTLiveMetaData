@@ -80,23 +80,32 @@ Resources:
               Action:
                 - sns:Publish
               Resource: !Ref SnsTopicForSms
-            # TODO: SSM Parameter Storeのパラメータ権限を見直す
             - Effect: Allow
               Action:
                 - ssm:DescribeParameters
                 - ssm:GetParameter
                 - ssm:GetParameters
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/*"
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_hmac_secret"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/youtube_channel_id"
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTable
           SNS_TOPIC_ARN: !Ref SnsTopicForSms
+          WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
+          YOUTUBE_CHANNEL_ID_PARAMETER_NAME: "/ytlivemetadata/youtube_channel_id"
       Events:
-        ApiEvent:
+        ApiEventPost:
           Type: Api
           Properties:
             Path: /notify
             Method: post
+            RestApiId: !Ref ApiGateway
+        ApiEventGet:
+          Type: Api
+          Properties:
+            Path: /notify
+            Method: get
             RestApiId: !Ref ApiGateway
       LoggingConfig:
         LogGroup: !Ref NotifyLambdaFunctionLogs
@@ -114,9 +123,9 @@ Resources:
           PUBSUBHUBBUB_HUB_URL: "https://pubsubhubbub.appspot.com/"
           LEASE_SECONDS: "828000"
           HMAC_SECRET_LENGTH: "32"
+          WEBSUB_CALLBACK_URL_PARAMETER_NAME: "/ytlivemetadata/websub_callback_url"
           WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
           YOUTUBE_CHANNEL_ID_PARAMETER_NAME: "/ytlivemetadata/youtube_channel_id"
-          WEBSUB_CALLBACK_URL_PARAMETER_NAME: "/ytlivemetadata/websub_callback_url"
       Policies:
         - Version: "2012-10-17"
           Statement:

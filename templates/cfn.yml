@@ -215,8 +215,7 @@ Resources:
                 Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/ytlivemetadata-dynamodb"
               - Effect: Allow
                 Action: "events:*"
-                Resource:
-                  - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/ytlivemetadata-ebrule-websub"
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/ytlivemetadata-ebrule-websub"
               - Effect: Allow
                 Action: "iam:*"
                 Resource:
