@@ -14,34 +14,6 @@ Globals:
         LOG_LEVEL: INFO
 
 Resources:
-  # CloudWatch Logs for API Gateway Access Logs
-  ApiGatewayAccessLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/apigateway/ytlivemetadata-apig
-      RetentionInDays: 90
-
-  # CloudWatch Logs for API Gateway Execution Logs
-  ApiGatewayExecutionLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "API-Gateway-Execution-Logs_${ApiGateway}/prod"
-      RetentionInDays: 90
-
-  # CloudWatch Logs for Lambda Function to Send SMS Notifications
-  NotifyLambdaFunctionLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/ytlivemetadata-lambda-notify
-      RetentionInDays: 90
-
-  # CloudWatch Logs for Lambda Function to Renew Google PubSubHubbub Subscription
-  WebSubLambdaFunctionLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
-      RetentionInDays: 90
-
   # DynamoDB Table
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -199,6 +171,34 @@ Resources:
           HttpMethod: "*"
           DataTraceEnabled: false
           MetricsEnabled: true
+
+  # CloudWatch Logs for API Gateway Access Logs
+  ApiGatewayAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/apigateway/ytlivemetadata-apig
+      RetentionInDays: 90
+
+  # CloudWatch Logs for API Gateway Execution Logs
+  ApiGatewayExecutionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "API-Gateway-Execution-Logs_${ApiGateway}/prod"
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Send SMS Notifications
+  NotifyLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-notify
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Renew Google PubSubHubbub Subscription
+  WebSubLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
+      RetentionInDays: 90
 
   # Systems Manager Parameter for Google PubSubHubbub Callback URL
   WebSubCallbackUrlSSMParameter:
