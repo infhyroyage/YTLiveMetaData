@@ -147,6 +147,8 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
 
 - ほとんどのインフラストラクチャは Infrastructure as Code (IaC) で管理し、手動構成は行わない。本システムでは、目的に応じて複数のテンプレートファイルを使用する:
   - **`cfn.yml` (CloudFormation テンプレート)**: CI/CD パイプラインの AWS リソースを定義
+    - Amazon CloudWatch
+      - CodeBuild 用ロググループ
     - Amazon S3
     - AWS CloudFormation
     - AWS CodeBuild
@@ -157,6 +159,8 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
   - **`sam.yml` (SAM テンプレート)**: サーバーレスアプリケーションの実行環境の AWS リソースを定義
     - Amazon API Gateway
     - Amazon CloudWatch
+      - Amazon API Gateway 用ロググループ
+      - AWS Lambda 用ロググループ
     - Amazon DynamoDB
     - Amazon EventBridge
     - Amazon SNS

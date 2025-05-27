@@ -84,6 +84,13 @@ Resources:
                   - !GetAtt CloudFormationExecutionRole.Arn
                 "s3:x-amz-server-side-encryption": "AES256"
 
+  # CloudWatch Logs for CodeBuild
+  CodeBuildLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/codebuild/ytlivemetadata-build
+      RetentionInDays: 90
+
   # IAM Role for AWS CodeBuild
   CodeBuildServiceRole:
     Type: AWS::IAM::Role

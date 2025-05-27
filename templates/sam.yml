@@ -14,11 +14,18 @@ Globals:
         LOG_LEVEL: INFO
 
 Resources:
-  # CloudWatch Logs for API Gateway
-  ApiGatewayLogs:
+  # CloudWatch Logs for API Gateway Access Logs
+  ApiGatewayAccessLogs:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/apigateway/ytlivemetadata-apig
+      RetentionInDays: 90
+
+  # CloudWatch Logs for API Gateway Execution Logs
+  ApiGatewayExecutionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "API-Gateway-Execution-Logs_${ApiGateway}/prod"
       RetentionInDays: 90
 
   # CloudWatch Logs for Lambda Function to Send SMS Notifications
@@ -175,6 +182,7 @@ Resources:
   # API Gateway
   ApiGateway:
     Type: AWS::Serverless::Api
+    DependsOn: ApiGatewayExecutionLogs
     Properties:
       Name: ytlivemetadata-apig
       StageName: prod
@@ -183,7 +191,7 @@ Resources:
       Auth:
         DefaultAuthorizer: NONE
       AccessLogSetting:
-        DestinationArn: !GetAtt ApiGatewayLogs.Arn
+        DestinationArn: !GetAtt ApiGatewayAccessLogs.Arn
         Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod", "routeKey":"$context.routeKey", "status":"$context.status", "protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
       MethodSettings:
         - LoggingLevel: INFO
