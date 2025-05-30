@@ -178,9 +178,9 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
 
 - AWS Lambda 関数の Python のコードは、必ず Python のユニットテストの stmt のカバレッジ率 80%以上をみたすようにして、コード品質を担保する。ユニットテストは、以下のコマンドで実行する。
   ```bash
-  pytest --cov=lambda --cov-report=term-missing --cov-fail-under=80 lambda/tests
+  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
   ```
 - AWS Lambda 関数は Python を用いてコーディングし、`.pylintrc`に記載した例外を除き、必ず Pylint の警告・エラーをすべて解消するように、コード品質を担保する。Pylint の静的解析は、以下のコマンドで実行する。
   ```bash
-  pylint lambda/**/*.py
+  pylint lambdas/**/*.py
   ```

@@ -10,13 +10,13 @@ phases:
 
   pre_build:
     commands:
-      - pytest --cov=lambda --cov-report=term-missing --cov-fail-under=80 lambda/tests
-      - pylint lambda/**/*.py
+      - pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+      - pylint lambdas/**/*.py
 
   build:
     commands:
-      - cp requirements.txt lambda/notify/requirements.txt
-      - cp requirements.txt lambda/websub/requirements.txt
+      - cp requirements.txt lambdas/notify/requirements.txt
+      - cp requirements.txt lambdas/websub/requirements.txt
       - sam build --template templates/sam.yml
       - sam package --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged.yaml
 

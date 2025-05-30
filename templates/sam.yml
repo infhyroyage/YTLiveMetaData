@@ -64,7 +64,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: ytlivemetadata-lambda-notify
-      CodeUri: ../lambda/notify/
+      CodeUri: ../lambdas/notify/
       Handler: app.lambda_handler
       Description: Process YouTube Live Stream Notifications and Send SMS
       Policies:
@@ -115,7 +115,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: ytlivemetadata-lambda-websub
-      CodeUri: ../lambda/websub/
+      CodeUri: ../lambdas/websub/
       Handler: app.lambda_handler
       Description: Renew Google PubSubHubbub Subscription
       Environment:
