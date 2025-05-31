@@ -226,13 +226,15 @@ Resources:
               - Effect: Allow
                 Action: "iam:*"
                 Resource:
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-notify-*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-get-notify-*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-post-notify-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-websub-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-stack-sam-*"
               - Effect: Allow
                 Action: "lambda:*"
                 Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-notify"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-get-notify"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-post-notify"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-websub"
               - Effect: Allow
                 Action: "logs:*"
