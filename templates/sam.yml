@@ -21,11 +21,18 @@ Resources:
       LogGroupName: /aws/apigateway/ytlivemetadata-apig
       RetentionInDays: 90
 
-  # CloudWatch Logs for Lambda Function to Send SMS Notifications
-  NotifyLambdaFunctionLogs:
+  # CloudWatch Logs for Lambda Function to Handle WebSub Subscription Verification
+  GetNotifyLambdaFunctionLogs:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/lambda/ytlivemetadata-lambda-notify
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-get-notify
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Process WebSub Notifications and Send SMS
+  PostNotifyLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-post-notify
       RetentionInDays: 90
 
   # CloudWatch Logs for Lambda Function to Renew Google PubSubHubbub Subscription
@@ -59,12 +66,45 @@ Resources:
       TopicName: ytlivemetadata-sns
       DisplayName: YouTube Live Metadata Notifications
 
-  # Lambda Function to Send SMS Notifications
-  NotifyLambdaFunction:
+  # Lambda Function for WebSub Subscription Verification
+  GetNotifyLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: ytlivemetadata-lambda-notify
-      CodeUri: ../lambdas/notify/
+      FunctionName: ytlivemetadata-lambda-get-notify
+      CodeUri: ../lambdas/get_notify/
+      Handler: app.lambda_handler
+      Description: Handle WebSub Subscription Verification for YouTube Live Stream Notifications
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:DescribeParameters
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_hmac_secret"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/youtube_channel_id"
+      Environment:
+        Variables:
+          WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
+          YOUTUBE_CHANNEL_ID_PARAMETER_NAME: "/ytlivemetadata/youtube_channel_id"
+      Events:
+        ApiEventGet:
+          Type: Api
+          Properties:
+            Path: /notify
+            Method: get
+            RestApiId: !Ref ApiGateway
+      LoggingConfig:
+        LogGroup: !Ref GetNotifyLambdaFunctionLogs
+
+  # Lambda Function to Process WebSub Notifications and Send SMS
+  PostNotifyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ytlivemetadata-lambda-post-notify
+      CodeUri: ../lambdas/post_notify/
       Handler: app.lambda_handler
       Description: Process YouTube Live Stream Notifications and Send SMS
       Policies:
@@ -87,13 +127,11 @@ Resources:
                 - ssm:GetParameters
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_hmac_secret"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/youtube_channel_id"
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTable
           SNS_TOPIC_ARN: !Ref SnsTopicForSms
           WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
-          YOUTUBE_CHANNEL_ID_PARAMETER_NAME: "/ytlivemetadata/youtube_channel_id"
       Events:
         ApiEventPost:
           Type: Api
@@ -101,14 +139,8 @@ Resources:
             Path: /notify
             Method: post
             RestApiId: !Ref ApiGateway
-        ApiEventGet:
-          Type: Api
-          Properties:
-            Path: /notify
-            Method: get
-            RestApiId: !Ref ApiGateway
       LoggingConfig:
-        LogGroup: !Ref NotifyLambdaFunctionLogs
+        LogGroup: !Ref PostNotifyLambdaFunctionLogs
 
   # Lambda Function to Renew Google PubSubHubbub Subscription
   WebSubLambdaFunction:

@@ -57,19 +57,20 @@ AWS 以外の外部サービスとも連携することにより、コア機能�
 
 以下の表は、本システムで使用する主要な AWS リソースとその役割を示している:
 
-| AWS リソース名 (論理 ID)        | AWS サービス       | 概要                                                                                 |
-| ------------------------------- | ------------------ | ------------------------------------------------------------------------------------ |
-| `ytlivemetadata-apig`           | Amazon API Gateway | WebSub での YouTube ライブ配信通知を受け取る API エンドポイント                      |
-| `ytlivemetadata-build`          | AWS CodeBuild      | ビルドプロセスを管理するアプリケーション                                             |
-| `ytlivemetadata-dynamodb`       | Amazon DynamoDB    | 処理済みの YouTube ライブ配信を記録するテーブル                                      |
-| `ytlivemetadata-ebrule-websub`  | Amazon EventBridge | `ytlivemetadata-lambda-websub`を定期実行するルール                                   |
-| `ytlivemetadata-lambda-notify`  | AWS Lambda         | WebSub での YouTube ライブ配信通知情報をもとに SMS で通知する Lambda 関数            |
-| `ytlivemetadata-lambda-websub`  | AWS Lambda         | Google PubSubHubbub Hub のサブスクリプションを再登録する Lambda 関数                 |
-| `ytlivemetadata-pipeline`       | AWS CodePipeline   | `ytlivemetadata-build`・`ytlivemetadata-stack-pipeline`を管理する CI/CD パイプライン |
-| `ytlivemetadata-sns`            | Amazon SNS         | SMS 通知を送信するための SNS トピック                                                |
-| (ユーザー指定)                  | Amazon S3          | CI/CD パイプラインのビルドアーティファクトを保存するバケット                         |
-| `ytlivemetadata-stack-pipeline` | AWS CloudFormation | CI/CD パイプラインの AWS リソースを管理するスタック                                  |
-| `ytlivemetadata-stack-sam`      | AWS CloudFormation | サーバーレスアプリケーションの AWS リソースを管理するスタック                        |
+| AWS リソース名 (論理 ID)            | AWS サービス       | 概要                                                                                 |
+| ----------------------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| `ytlivemetadata-apig`               | Amazon API Gateway | WebSub での YouTube ライブ配信通知を受け取る API エンドポイント                      |
+| `ytlivemetadata-build`              | AWS CodeBuild      | ビルドプロセスを管理するアプリケーション                                             |
+| `ytlivemetadata-dynamodb`           | Amazon DynamoDB    | 処理済みの YouTube ライブ配信を記録するテーブル                                      |
+| `ytlivemetadata-ebrule-websub`      | Amazon EventBridge | `ytlivemetadata-lambda-websub`を定期実行するルール                                   |
+| `ytlivemetadata-lambda-get-notify`  | AWS Lambda         | WebSub サブスクリプション確認処理を行う Lambda 関数                                  |
+| `ytlivemetadata-lambda-post-notify` | AWS Lambda         | WebSub での YouTube ライブ配信通知情報をもとに SMS で通知する Lambda 関数            |
+| `ytlivemetadata-lambda-websub`      | AWS Lambda         | Google PubSubHubbub Hub のサブスクリプションを再登録する Lambda 関数                 |
+| `ytlivemetadata-pipeline`           | AWS CodePipeline   | `ytlivemetadata-build`・`ytlivemetadata-stack-pipeline`を管理する CI/CD パイプライン |
+| `ytlivemetadata-sns`                | Amazon SNS         | SMS 通知を送信するための SNS トピック                                                |
+| (ユーザー指定)                      | Amazon S3          | CI/CD パイプラインのビルドアーティファクトを保存するバケット                         |
+| `ytlivemetadata-stack-pipeline`     | AWS CloudFormation | CI/CD パイプラインの AWS リソースを管理するスタック                                  |
+| `ytlivemetadata-stack-sam`          | AWS CloudFormation | サーバーレスアプリケーションの AWS リソースを管理するスタック                        |
 
 ### 2.3 AWS アーキテクチャー図
 
@@ -91,14 +92,14 @@ https://www.youtube.com/xml/feeds/videos.xml?channel_id={購読するチャン�
 
 Google PubSubHubbub Hub のサブスクリプション登録時に、以下を設定する必要がある:
 
-| 設定項目      | 値                                                                                |
-| ------------- | --------------------------------------------------------------------------------- |
-| Callback URL  | `ytlivemetadata-lambda-notify`の API Gateway のエンドポイント                     |
-| Topic URL     | `https://www.youtube.com/xml/feeds/videos.xml?channel_id={購読するチャンネル ID}` |
-| Verify Type   | `Asynchronous`                                                                    |
-| Mode          | `Subscribe`                                                                       |
-| HMAC secret   | `ytlivemetadata-lambda-websub`で発行した HMAC シークレットの値                    |
-| Lease seconds | `828000`(10 日間)                                                                 |
+| 設定項目      | 値                                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| Callback URL  | API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`エンドポイント |
+| Topic URL     | `https://www.youtube.com/xml/feeds/videos.xml?channel_id={購読するチャンネル ID}`                  |
+| Verify Type   | `Asynchronous`                                                                                     |
+| Mode          | `Subscribe`                                                                                        |
+| HMAC secret   | `ytlivemetadata-lambda-websub`で発行した HMAC シークレットの値                                     |
+| Lease seconds | `828000`(10 日間)                                                                                  |
 
 ### 3.2 SMS 通知の送信
 
@@ -136,7 +137,7 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
 
 セキュリティとシステム信頼性を確保するため、以下のパラメーターは AWS Systems Manager Parameter Store で安全に管理し、リポジトリには保存しない。
 
-- API Gateway の`ytlivemetadata-lambda-notify`のエンドポイント
+- API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`のエンドポイント
 - Google PubSubHubbub Hub サブスクリプションの HMAC シークレット
 - YouTube Data API v3 の API キー
 - ライブ配信を購読するチャンネル ID
@@ -167,7 +168,7 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
     - Amazon SNS
     - AWS Lambda
     - AWS Systems Manager Parameter Store
-      - API Gateway の`ytlivemetadata-lambda-notify`のエンドポイント
+      - API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`エンドポイント
     - 上記 AWS リソースに必要な IAM ロール・IAM ポリシー
 - CloudFormation テンプレート・SAM テンプレートでは、SecureString タイプ(安全な文字列)の SSM パラメーターがサポートされていないため、以下の機密情報は IaC で管理せず、AWS CLI で事前作成する。
   - YouTube Data API v3 の API キー
