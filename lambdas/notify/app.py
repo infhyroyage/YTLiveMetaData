@@ -1,5 +1,7 @@
 """WebSubでのYouTubeライブ配信通知情報をもとに、SMS通知を送信する"""
 
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -33,9 +35,9 @@ def get_parameter_value(parameter_name: str) -> str:
     return response["Parameter"]["Value"]
 
 
-def handle_websub_verification(event: Dict[str, Any]) -> Dict[str, Any]:
+def handle_get_notify(event: Dict[str, Any]) -> Dict[str, Any]:
     """
-    [GET] /notifyでのWebSub検証リクエストを処理する
+    Google PubSubHubbubのサブスクリプションの登録を確認する
 
     Args:
         event (dict): API Gatewayイベント
@@ -51,7 +53,7 @@ def handle_websub_verification(event: Dict[str, Any]) -> Dict[str, Any]:
     hub_lease_seconds: str | None = query_params.get("hub.lease_seconds")
     hub_challenge: str | None = query_params.get("hub.challenge")
 
-    # パラメータ検証
+    # クエリパラメータの検証
     if not hub_challenge:
         return {
             "statusCode": 400,
@@ -92,10 +94,49 @@ def handle_websub_verification(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def handle_websub_notification(event: Dict[str, Any]) -> Dict[str, Any]:
+def verify_hmac_signature(event: Dict[str, Any]) -> bool:
     """
-    [POST] /notifyでのWebSub通知リクエストを処理する
-    TODO: ライブ配信通知処理が未実装
+    Google PubSubHubbub Hubからのプッシュ通知のHMAC署名を検証する
+
+    Args:
+        event (dict): API Gatewayイベント
+
+    Returns:
+        bool: 検証に成功した場合はTrue、失敗した場合はFalse
+    """
+    # X-Hub-Signatureヘッダーの存在
+    signature: str | None = {
+        k.lower(): v for k, v in event.get("headers", {}).items()
+    }.get("x-hub-signature")
+    if not signature:
+        logger.error("Missing X-Hub-Signature header")
+        return False
+
+    hmac_secret: str = get_parameter_value(WEBSUB_HMAC_SECRET_PARAMETER_NAME)
+
+    # 署名の形式を解析し、サポートされているアルゴリズムかをチェック
+    method, sig = signature.split("=", 1)
+    if method not in ["sha1", "sha256", "sha384", "sha512"]:
+        logger.error("Unsupported signature method: %s", method)
+        return False
+
+    # HMACを計算してセキュアに比較
+    expected_signature: str = hmac.new(
+        hmac_secret.encode("utf-8"),
+        event.get("body", "").encode("utf-8"),
+        getattr(hashlib, method),
+    ).hexdigest()
+    if not hmac.compare_digest(sig, expected_signature):
+        logger.error("HMAC signature verification failed")
+        return False
+
+    return True
+
+
+def handle_post_notify(event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Google PubSubHubbubから受信したYouTubeライブ配信プッシュ通知より、SMS通知を行う
+    TODO: 技術スタック「1.3 データフロー」の5以降が未実装
 
     Args:
         event (dict): API Gatewayイベント
@@ -103,12 +144,14 @@ def handle_websub_notification(event: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict: レスポンス
     """
-    logger.info("Received WebSub notification (not yet implemented)")
+    # HMAC署名の検証
+    if not verify_hmac_signature(event):
+        return {
+            "statusCode": 400,
+            "body": "Invalid WebSub notification",
+        }
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps({"message": "WebSub notification received"}),
-    }
+    return {"statusCode": 200, "body": "OK"}
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -126,10 +169,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         http_method: str = event.get("httpMethod", "").upper()
         if http_method == "GET":
             # [GET] /notify
-            return handle_websub_verification(event)
+            return handle_get_notify(event)
         if http_method == "POST":
             # [POST] /notify
-            return handle_websub_notification(event)
+            return handle_post_notify(event)
 
         return {
             "statusCode": 405,

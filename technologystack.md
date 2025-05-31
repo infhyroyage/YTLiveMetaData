@@ -17,7 +17,7 @@ Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTu
 1. ユーザーが YouTube でライブ配信を開始する。
 2. YouTube が事前に登録された Google PubSubHubbub Hub に RSS をプッシュ通知する。
 3. Google PubSubHubbub Hub が Amazon API Gateway にプッシュ通知し、AWS Lambda 関数を起動する。
-4. AWS Lambda 関数が本当に Google PubSubHubbub Hub からプッシュ通知したかを検証する。
+4. AWS Lambda 関数が Google PubSubHubbub Hub からのプッシュ通知から HMAC 署名を検証する。
 5. AWS Lambda 関数が[XML 形式のプッシュ通知内容のデータ](https://developers.google.com/youtube/v3/guides/push_notifications?hl=ja)を解析する。
 6. AWS Lambda 関数が解析したデータからライブ配信かをチェックし、ライブ配信の場合はそのビデオ ID の取得、ライブ配信ではない場合は以降の動作を行わずに正常終了する。
 7. AWS Lambda 関数が Amazon DynamoDB で処理済みかをチェックし、処理済みの場合は以降の動作を行わずに正常終了する(重複通知防止)。
