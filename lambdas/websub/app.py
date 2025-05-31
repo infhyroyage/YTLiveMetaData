@@ -1,6 +1,5 @@
 """Google PubSubHubbubのサブスクリプションを再登録する"""
 
-import json
 import logging
 import os
 import secrets
@@ -132,12 +131,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         return {
             "statusCode": 200,
-            "body": json.dumps({"message": "WebSub subscription renewed successfully"}),
+            "body": "OK",
         }
 
     except Exception:
         logger.error(traceback.format_exc())
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Internal server error"}),
+            "body": "Internal server error",
         }
