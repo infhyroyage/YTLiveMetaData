@@ -15,14 +15,15 @@ Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTu
 システム全体の処理フローは以下の通りである:
 
 1. ユーザーが YouTube でライブ配信を開始する。
-2. YouTube が事前に登録された Google PubSubHubbub Hub に RSS を通知する。
-3. Google PubSubHubbub Hub が Amazon API Gateway に通知し、AWS Lambda 関数を起動する。
-4. AWS Lambda 関数が本当に Google PubSubHubbub Hub から通知したかを、HMAC シークレットを用いて検証する。
-5. AWS Lambda 関数が通知内容の XML を解析してライブ配信かどうかを判定し、ライブ配信の場合はそのビデオ ID を取得する。
-6. AWS Lambda 関数が Amazon DynamoDB で処理済みかチェック(重複通知防止)する。
-7. AWS Lambda 関数が YouTube Data API v3 を実行し、ライブ配信の動画情報を取得する。
-8. AWS Lambda 関数が Amazon SNS を使用して、ライブ配信情報(サムネイル画像 URL、配信タイトル、動画 URL)を SMS で通知する。
-9. AWS Lambda 関数が処理結果を Amazon DynamoDB に記録する。
+2. YouTube が事前に登録された Google PubSubHubbub Hub に RSS をプッシュ通知する。
+3. Google PubSubHubbub Hub が Amazon API Gateway にプッシュ通知し、AWS Lambda 関数を起動する。
+4. AWS Lambda 関数が本当に Google PubSubHubbub Hub からプッシュ通知したかを検証する。
+5. AWS Lambda 関数が[XML 形式のプッシュ通知内容のデータ](https://developers.google.com/youtube/v3/guides/push_notifications?hl=ja)を解析する。
+6. AWS Lambda 関数が解析したデータからライブ配信かをチェックし、ライブ配信の場合はそのビデオ ID の取得、ライブ配信ではない場合は以降の動作を行わずに正常終了する。
+7. AWS Lambda 関数が Amazon DynamoDB で処理済みかをチェックし、処理済みの場合は以降の動作を行わずに正常終了する(重複通知防止)。
+8. AWS Lambda 関数が YouTube Data API v3 を実行し、ライブ配信の動画情報を取得する。
+9. AWS Lambda 関数が Amazon SNS を使用して、ライブ配信情報(サムネイル画像 URL、配信タイトル、動画 URL)を SMS で通知する。
+10. AWS Lambda 関数が処理結果を Amazon DynamoDB に記録する。
 
 ## 2. アーキテクチャと技術スタック
 
