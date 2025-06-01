@@ -83,18 +83,19 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     try:
         # Google PubSubHubbub Hubからのプッシュ通知のHMAC署名を検証
-        error_message = verify_hmac_signature(event)
-        if error_message:
+        verify_result: str | None = verify_hmac_signature(event)
+        if verify_result:
+            logger.error({"verify_result": verify_result})
             return {
                 "statusCode": 400,
-                "body": error_message,
+                "body": verify_result,
             }
 
         logger.info("Not implemented")
 
         return {
             "statusCode": 200,
-            "body": "WebSub notification processed",
+            "body": "OK",
         }
     except Exception:
         logger.error(traceback.format_exc())

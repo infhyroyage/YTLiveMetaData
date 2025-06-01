@@ -82,15 +82,16 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     try:
         query_params = event.get("queryStringParameters") or {}
-        result = vetify_query_params(query_params)
-        if result:
-            # 検証失敗：エラーメッセージを返す
+        verify_result: str | None = vetify_query_params(query_params)
+        if verify_result:
+            # 検証失敗
+            logger.error({"verify_result": verify_result})
             return {
                 "statusCode": 400,
-                "body": result,
+                "body": verify_result,
             }
 
-        # 検証成功：hub.challengeを返す
+        # 検証成功
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "text/plain"},
