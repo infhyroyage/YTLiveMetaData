@@ -127,11 +127,13 @@ Resources:
                 - ssm:GetParameters
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_hmac_secret"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/youtube_api_key"
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTable
           SNS_TOPIC_ARN: !Ref SnsTopicForSms
           WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
+          YOUTUBE_API_KEY_PARAMETER_NAME: "/ytlivemetadata/youtube_api_key"
       Events:
         ApiEventPost:
           Type: Api

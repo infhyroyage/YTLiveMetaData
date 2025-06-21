@@ -18,12 +18,11 @@ Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTu
 2. YouTube が事前に登録された Google PubSubHubbub Hub に RSS をプッシュ通知する。
 3. Google PubSubHubbub Hub が Amazon API Gateway にプッシュ通知し、AWS Lambda 関数を起動する。
 4. AWS Lambda 関数が Google PubSubHubbub Hub からのプッシュ通知から HMAC 署名を検証する。
-5. AWS Lambda 関数が[XML 形式のプッシュ通知内容のデータ](https://developers.google.com/youtube/v3/guides/push_notifications?hl=ja)を解析する。
-6. AWS Lambda 関数が解析したデータからライブ配信かをチェックし、ライブ配信の場合はそのビデオ ID の取得、ライブ配信ではない場合は以降の動作を行わずに正常終了する。
-7. AWS Lambda 関数が Amazon DynamoDB で処理済みかをチェックし、処理済みの場合は以降の動作を行わずに正常終了する(重複通知防止)。
-8. AWS Lambda 関数が YouTube Data API v3 を実行し、ライブ配信の動画情報を取得する。
-9. AWS Lambda 関数が Amazon SNS を使用して、ライブ配信情報(サムネイル画像 URL、配信タイトル、動画 URL)を SMS で通知する。
-10. AWS Lambda 関数が処理結果を Amazon DynamoDB に記録する。
+5. AWS Lambda 関数がプッシュ通知内容のデータを解析して現在ライブ配信中かどうかを判定し、現在ライブ配信中の場合はサムネイル画像 URL を取得して処理を継続し、それ以外の場合は以降の動作を行わずに正常終了する。
+6. AWS Lambda 関数が Amazon DynamoDB で処理済みかをチェックし、処理済みの場合は以降の動作を行わずに正常終了する(重複通知防止)。
+7. AWS Lambda 関数が YouTube Data API v3 を実行し、ライブ配信の動画情報を取得する。
+8. AWS Lambda 関数が Amazon SNS を使用して、ライブ配信情報(サムネイル画像 URL、配信タイトル、動画 URL)を SMS で通知する。
+9. AWS Lambda 関数が処理結果を Amazon DynamoDB に記録する。
 
 ## 2. アーキテクチャと技術スタック
 
@@ -82,7 +81,7 @@ AWS 以外の外部サービスとも連携することにより、コア機能�
 
 ### 3.1 YouTube ライブ配信検知
 
-YouTube の新規ライブ配信を検知するために、[Google PubSubHubbub Hub](https://pubsubhubbub.appspot.com/) を経由した WebSub の仕組みを利用する。この仕組みにより、[YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com) のポーリング遅延やクオーター超過を避け、リアルタイムな通知を受け取ることができる。
+YouTube の新規ライブ配信を`ytlivemetadata-lambda-post-notify`が検知するために、[Google PubSubHubbub Hub](https://pubsubhubbub.appspot.com/) を経由した WebSub の仕組みを利用する。この仕組みにより、[YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com) のポーリング遅延やポーリングによるクオーター超過を避け、リアルタイムにプッシュ通知を検知することができる。
 
 本システムでは、以下を設定して Google PubSubHubbub Hub のサブスクリプションを登録する:
 
@@ -94,6 +93,8 @@ YouTube の新規ライブ配信を検知するために、[Google PubSubHubbub 
 | Mode          | `Subscribe`                                                                                          |
 | HMAC secret   | `ytlivemetadata-lambda-websub`で発行した HMAC シークレットの値                                       |
 | Lease seconds | `828000`(10 日間)                                                                                    |
+
+Google PubSubHubbub Hub がプッシュ通知したデータは、[XML 形式](https://developers.google.com/youtube/v3/guides/push_notifications?hl=ja)である。
 
 ### 3.2 SMS 通知の送信
 
