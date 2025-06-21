@@ -82,24 +82,18 @@ AWS 以外の外部サービスとも連携することにより、コア機能�
 
 ### 3.1 YouTube ライブ配信検知
 
-YouTube の新規ライブ配信を検知するために、Google PubSubHubbub Hub を経由した WebSub の仕組みを利用する。この仕組みにより、YouTube Data API v3 のポーリング遅延やクオーター超過を避け、リアルタイムな通知を受け取ることができる。
+YouTube の新規ライブ配信を検知するために、[Google PubSubHubbub Hub](https://pubsubhubbub.appspot.com/) を経由した WebSub の仕組みを利用する。この仕組みにより、[YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com) のポーリング遅延やクオーター超過を避け、リアルタイムな通知を受け取ることができる。
 
-Google PubSubHubbub Hub では、以下のトピックを RSS でライブ配信を購読するようにサブスクリプションを登録する必要がある:
+本システムでは、以下を設定して Google PubSubHubbub Hub のサブスクリプションを登録する:
 
-```
-https://www.youtube.com/xml/feeds/videos.xml?channel_id={購読するチャンネル ID}
-```
-
-Google PubSubHubbub Hub のサブスクリプション登録時に、以下を設定する必要がある:
-
-| 設定項目      | 値                                                                                                 |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| Callback URL  | API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`エンドポイント |
-| Topic URL     | `https://www.youtube.com/xml/feeds/videos.xml?channel_id={購読するチャンネル ID}`                  |
-| Verify Type   | `Asynchronous`                                                                                     |
-| Mode          | `Subscribe`                                                                                        |
-| HMAC secret   | `ytlivemetadata-lambda-websub`で発行した HMAC シークレットの値                                     |
-| Lease seconds | `828000`(10 日間)                                                                                  |
+| 設定項目      | 値                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| Callback URL  | API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`のエンドポイント |
+| Topic URL     | `https://www.youtube.com/xml/feeds/videos.xml?channel_id={購読するチャンネル ID}`                    |
+| Verify Type   | `Asynchronous`                                                                                       |
+| Mode          | `Subscribe`                                                                                          |
+| HMAC secret   | `ytlivemetadata-lambda-websub`で発行した HMAC シークレットの値                                       |
+| Lease seconds | `828000`(10 日間)                                                                                    |
 
 ### 3.2 SMS 通知の送信
 
@@ -133,7 +127,17 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
 - pytest (ユニットテスト)
 - pylint (コード静的解析)
 
-### 4.2 重要な制約事項
+### 4.2 依存関係管理
+
+本システムでは、セキュリティの脆弱性や新機能に対応するように定期的にパッケージのバージョンアップを自動的に提案する GitHub の機能である GitHub Dependabot を使用して、Python パッケージの依存関係を `requirements.txt` として管理する。
+GitHub Dependabot は以下の実行方式に従い、`.github/dependabot.yaml`で管理する:
+
+- **実行スケジュール**: 毎週火曜日 10:00 (Asia/Tokyo)
+- **対象ファイル**: `requirements.txt`
+- **更新方式**: プルリクエストによる自動提案
+- **レビュー担当**: 指定されたリポジトリ管理者
+
+### 4.3 重要な制約事項
 
 セキュリティとシステム信頼性を確保するため、以下のパラメーターは AWS Systems Manager Parameter Store で安全に管理し、リポジトリには保存しない。
 
@@ -143,7 +147,7 @@ Google PubSubHubbub Hub に登録したサブスクリプションの最大有�
 - ライブ配信を購読するチャンネル ID
 - SMS 通知の送信先電話番号
 
-### 4.3 開発時の実装規則
+### 4.4 開発時の実装規則
 
 コード品質と一貫性を確保するため、以下の実装規則に従う:
 
