@@ -61,9 +61,7 @@ def vetify_query_params(query_params: Dict[str, str]) -> str | None:
 
     if query_params.get("hub.lease_seconds"):
         lease_seconds = query_params.get("hub.lease_seconds")
-        if not lease_seconds.isdigit():
-            return f"Bad Request: Invalid hub.lease_seconds: {lease_seconds}"
-        if int(lease_seconds) != 828000:
+        if not lease_seconds.isdigit() or int(lease_seconds) != 828000:
             return f"Bad Request: Invalid hub.lease_seconds: {lease_seconds}"
 
     return None
