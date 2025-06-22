@@ -12,15 +12,18 @@ from xml.etree.ElementTree import Element, fromstring
 import boto3
 import requests
 
-DYNAMODB_TABLE = os.environ["DYNAMODB_TABLE"]
-WEBSUB_HMAC_SECRET_PARAMETER_NAME = os.environ["WEBSUB_HMAC_SECRET_PARAMETER_NAME"]
-YOUTUBE_API_KEY_PARAMETER_NAME = os.environ["YOUTUBE_API_KEY_PARAMETER_NAME"]
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-ssm_client = boto3.client("ssm")
+DYNAMODB_TABLE = os.environ["DYNAMODB_TABLE"]
+SMS_PHONE_NUMBER_PARAMETER_NAME = os.environ["SMS_PHONE_NUMBER_PARAMETER_NAME"]
+SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
+WEBSUB_HMAC_SECRET_PARAMETER_NAME = os.environ["WEBSUB_HMAC_SECRET_PARAMETER_NAME"]
+YOUTUBE_API_KEY_PARAMETER_NAME = os.environ["YOUTUBE_API_KEY_PARAMETER_NAME"]
+
 dynamodb_client = boto3.client("dynamodb")
+sns_client = boto3.client("sns")
+ssm_client = boto3.client("ssm")
 
 
 def get_parameter_value(parameter_name: str) -> str:
@@ -218,10 +221,37 @@ def record_notified(video_id: str, title: str, url: str, thumbnail_url: str) -> 
     )
 
 
+def send_sms_notification(title: str, url: str, thumbnail_url: str) -> None:
+    """
+    SNSを使用してライブ配信情報をSMS通知する
+
+    Args:
+        title (str): 配信タイトル
+        url (str): 動画URL
+        thumbnail_url (str): サムネイル画像URL
+    """
+    phone_number: str = get_parameter_value(SMS_PHONE_NUMBER_PARAMETER_NAME)
+
+    # 配信タイトル、動画URL、サムネイル画像URLを個別に送信
+    # サムネイル画像URLを取得できない(空文字列である)場合は通知しない
+    sns_client.publish(
+        PhoneNumber=phone_number,
+        Message=title
+    )
+    sns_client.publish(
+        PhoneNumber=phone_number,
+        Message=url
+    )
+    if thumbnail_url:
+        sns_client.publish(
+            PhoneNumber=phone_number,
+            Message=thumbnail_url
+        )
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     WebSubでのYouTubeライブ配信通知情報をもとにSMS通知を送信するLambda関数のハンドラー
-    TODO: 技術スタック「1.3 データフロー」の8が未実装
 
     Args:
         event (dict): API Gatewayイベント
@@ -255,13 +285,21 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         video_data["thumbnail_url"] = thumbnail_url
         logger.info("video_data: %s", video_data)
 
-        # 通知済の場合はここで正常終了(重複 SMS 通知防止)
+        # 通知済の場合はここで正常終了(重複SMS通知防止)
         if check_if_notified(video_data["video_id"]):
             logger.info("Video already notified, skipping: %s", video_data["video_id"])
             return {
                 "statusCode": 200,
                 "body": "OK",
             }
+
+        # SMS通知の送信
+        send_sms_notification(
+            video_data["title"],
+            video_data["url"],
+            video_data["thumbnail_url"]
+        )
+        logger.info("SMS notification sent for video %s", video_data["video_id"])
 
         # 通知済として記録
         record_notified(

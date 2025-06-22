@@ -98,11 +98,11 @@ Google PubSubHubbub Hub がプッシュ通知したデータは、[XML 形式](h
 
 ### 3.2 SMS 通知の送信
 
-YouTube Data API v3 を実行して取得した情報をもとに、Amazon SNS を利用して以下の内容を SMS で通知する:
+Google PubSubHubbub Hub がプッシュ通知したデータ、および YouTube Data API v3 を実行して取得したデータをもとに、Amazon SNS を利用して以下のライブ配信の情報を別々に SMS 通知する:
 
-- YouTube ライブ配信の配信タイトル
-- YouTube ライブ配信の URL (`https://www.youtube.com/watch?v={ライブ配信のビデオ ID}`)
-- YouTube ライブ配信のサムネイル画像 URL
+- 配信タイトル
+- 動画 URL (`https://www.youtube.com/watch?v={ビデオ ID}`)
+- サムネイル画像 URL
 
 SMS 通知の送信先電話番号は、AWS Systems Manager Parameter Store に安全に保管する。
 
