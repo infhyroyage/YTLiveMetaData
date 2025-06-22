@@ -129,13 +129,13 @@ Resources:
                 - ssm:GetParameter
                 - ssm:GetParameters
               Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/sms_phone_number"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/phone_number"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/websub_hmac_secret"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/youtube_api_key"
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTable
-          SMS_PHONE_NUMBER_PARAMETER_NAME: "/ytlivemetadata/sms_phone_number"
+          SMS_PHONE_NUMBER_PARAMETER_NAME: "/ytlivemetadata/phone_number"
           SNS_TOPIC_ARN: !Ref SnsTopicForSms
           WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
           YOUTUBE_API_KEY_PARAMETER_NAME: "/ytlivemetadata/youtube_api_key"
