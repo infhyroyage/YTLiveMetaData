@@ -54,6 +54,9 @@ Resources:
       KeySchema:
         - AttributeName: video_id
           KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
       SSESpecification:
         SSEEnabled: true
       PointInTimeRecoverySpecification:

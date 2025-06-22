@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import os
+import time
 import traceback
 from typing import Any, Dict, List
 from xml.etree.ElementTree import Element, fromstring
@@ -11,6 +12,7 @@ from xml.etree.ElementTree import Element, fromstring
 import boto3
 import requests
 
+DYNAMODB_TABLE = os.environ["DYNAMODB_TABLE"]
 WEBSUB_HMAC_SECRET_PARAMETER_NAME = os.environ["WEBSUB_HMAC_SECRET_PARAMETER_NAME"]
 YOUTUBE_API_KEY_PARAMETER_NAME = os.environ["YOUTUBE_API_KEY_PARAMETER_NAME"]
 
@@ -18,6 +20,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 ssm_client = boto3.client("ssm")
+dynamodb_client = boto3.client("dynamodb")
 
 
 def get_parameter_value(parameter_name: str) -> str:
@@ -34,6 +37,42 @@ def get_parameter_value(parameter_name: str) -> str:
         Name=parameter_name, WithDecryption=True
     )
     return response["Parameter"]["Value"]
+
+
+def verify_hmac_signature(event: Dict[str, Any]) -> str | None:
+    """
+    Google PubSubHubbub Hubからのプッシュ通知のHMAC署名を検証する
+
+    Args:
+        event (dict): API Gatewayイベント
+
+    Returns:
+        str | None: 検証成功時はNone、失敗時はエラーメッセージ
+    """
+    # X-Hub-Signatureヘッダーの存在
+    signature: str | None = {
+        k.lower(): v for k, v in event.get("headers", {}).items()
+    }.get("x-hub-signature")
+    if not signature:
+        return "Missing X-Hub-Signature header"
+
+    hmac_secret: str = get_parameter_value(WEBSUB_HMAC_SECRET_PARAMETER_NAME)
+
+    # 署名の形式を解析し、サポートされているアルゴリズムかをチェック
+    method, sig = signature.split("=", 1)
+    if method not in ["sha1", "sha256", "sha384", "sha512"]:
+        return f"Unsupported signature method: {method}"
+
+    # HMACを計算してセキュアに比較
+    expected_signature: str = hmac.new(
+        hmac_secret.encode("utf-8"),
+        event.get("body", "").encode("utf-8"),
+        getattr(hashlib, method),
+    ).hexdigest()
+    if not hmac.compare_digest(sig, expected_signature):
+        return "HMAC signature verification failed"
+
+    return None
 
 
 def parse_websub_xml(xml_content: str) -> Dict[str, str]:
@@ -124,46 +163,65 @@ def check_if_live_streaming(video_id: str) -> str | None:
     return None
 
 
-def verify_hmac_signature(event: Dict[str, Any]) -> str | None:
+def check_if_notified(video_id: str) -> bool:
     """
-    Google PubSubHubbub Hubからのプッシュ通知のHMAC署名を検証する
+    DynamoDBで通知済かどうかを判定する
 
     Args:
-        event (dict): API Gatewayイベント
+        video_id (str): ビデオID
 
     Returns:
-        str | None: 検証成功時はNone、失敗時はエラーメッセージ
+        bool: 通知済の場合True、未通知の場合False
     """
-    # X-Hub-Signatureヘッダーの存在
-    signature: str | None = {
-        k.lower(): v for k, v in event.get("headers", {}).items()
-    }.get("x-hub-signature")
-    if not signature:
-        return "Missing X-Hub-Signature header"
+    # DynamoDBから項目を取得し、項目が存在しない場合は未通知として判定
+    response: Dict[str, Any] | None = dynamodb_client.get_item(
+        TableName=DYNAMODB_TABLE,
+        Key={"video_id": {"S": video_id}},
+        ConsistentRead=True
+    )
+    if response is None or "Item" not in response:
+        return False
 
-    hmac_secret: str = get_parameter_value(WEBSUB_HMAC_SECRET_PARAMETER_NAME)
+    # is_notified属性がTrueの場合は通知済、それ以外の場合は未通知として判定
+    return response["Item"].get("is_notified", {}).get("BOOL", False)
 
-    # 署名の形式を解析し、サポートされているアルゴリズムかをチェック
-    method, sig = signature.split("=", 1)
-    if method not in ["sha1", "sha256", "sha384", "sha512"]:
-        return f"Unsupported signature method: {method}"
 
-    # HMACを計算してセキュアに比較
-    expected_signature: str = hmac.new(
-        hmac_secret.encode("utf-8"),
-        event.get("body", "").encode("utf-8"),
-        getattr(hashlib, method),
-    ).hexdigest()
-    if not hmac.compare_digest(sig, expected_signature):
-        return "HMAC signature verification failed"
+def record_notified(video_id: str, title: str, url: str, thumbnail_url: str) -> None:
+    """
+    DynamoDBに通知済として記録する
 
-    return None
+    Args:
+        video_id (str): ビデオID
+        title (str): 配信タイトル
+        url (str): 動画URL
+        thumbnail_url (str): サムネイル画像URL
+    """
+    update_expression: str = (
+        "SET notified_timestamp = :notified_timestamp, "
+        "is_notified = :is_notified, "
+        "title = :title, "
+        "url = :url, "
+        "thumbnail_url = :thumbnail_url"
+    )
+    expression_attribute_values: Dict[str, Any] = {
+        ":notified_timestamp": {"N": str(int(time.time()))},
+        ":is_notified": {"BOOL": True},
+        ":title": {"S": title},
+        ":url": {"S": url},
+        ":thumbnail_url": {"S": thumbnail_url},
+    }
+    dynamodb_client.update_item(
+        TableName=DYNAMODB_TABLE,
+        Key={"video_id": {"S": video_id}},
+        UpdateExpression=update_expression,
+        ExpressionAttributeValues=expression_attribute_values
+    )
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     WebSubでのYouTubeライブ配信通知情報をもとにSMS通知を送信するLambda関数のハンドラー
-    TODO: 技術スタック「1.3 データフロー」の6以降が未実装
+    TODO: 技術スタック「1.3 データフロー」の8が未実装
 
     Args:
         event (dict): API Gatewayイベント
@@ -186,7 +244,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         video_data: Dict[str, str] = parse_websub_xml(event.get("body", ""))
         logger.info("video_data: %s", video_data)
 
-        # YouTube Data API v3でライブ配信かを判定し、サムネイル画像URLを取得
+        # 現在ライブ配信中の場合はサムネイル画像URLを取得し、それ以外の場合はここで正常終了
         thumbnail_url: str | None = check_if_live_streaming(video_data["video_id"])
         if thumbnail_url is None:
             logger.info("Video is not a live stream: %s", video_data)
@@ -196,6 +254,23 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         video_data["thumbnail_url"] = thumbnail_url
         logger.info("video_data: %s", video_data)
+
+        # 通知済の場合はここで正常終了(重複 SMS 通知防止)
+        if check_if_notified(video_data["video_id"]):
+            logger.info("Video already notified, skipping: %s", video_data["video_id"])
+            return {
+                "statusCode": 200,
+                "body": "OK",
+            }
+
+        # 通知済として記録
+        record_notified(
+            video_data["video_id"],
+            video_data["title"],
+            video_data["url"],
+            video_data["thumbnail_url"],
+        )
+        logger.info("Recorded notified for video %s", video_data["video_id"])
 
         return {
             "statusCode": 200,

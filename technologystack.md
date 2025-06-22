@@ -8,7 +8,7 @@ YouTube でライブ配信を開始した直後に、そのライブ配信の開
 
 ### 1.2 ソリューション概要
 
-Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTube ライブ配信開始イベントを検知し、ライブ配信の情報(サムネイル画像 URL、配信タイトル、動画 URL)を SMS で通知するように AWS Lambda を実行するサーバーレスアプリケーションを構築する。このアプローチにより、手動操作なしでリアルタイムな通知を実現する。
+Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTube ライブ配信開始イベントを検知し、ライブ配信の情報(配信タイトル、動画 URL、サムネイル画像 URL)を SMS で通知するように AWS Lambda を実行するサーバーレスアプリケーションを構築する。このアプローチにより、手動操作なしでリアルタイムな通知を実現する。
 
 ### 1.3 データフロー
 
@@ -18,13 +18,13 @@ Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTu
 2. YouTube が事前に登録された Google PubSubHubbub Hub に RSS をプッシュ通知する。
 3. Google PubSubHubbub Hub が Amazon API Gateway にプッシュ通知し、AWS Lambda 関数を起動する。
 4. AWS Lambda 関数が Google PubSubHubbub Hub からのプッシュ通知から HMAC 署名を検証する。
-5. AWS Lambda 関数がプッシュ通知内容のデータを解析して現在ライブ配信中かどうかを判定し、現在ライブ配信中の場合はサムネイル画像 URL を取得して処理を継続し、それ以外の場合は以降の動作を行わずに正常終了する。
-6. AWS Lambda 関数が Amazon DynamoDB で処理済みかをチェックし、処理済みの場合は以降の動作を行わずに正常終了する(重複通知防止)。
-7. AWS Lambda 関数が YouTube Data API v3 を実行し、ライブ配信の動画情報を取得する。
-8. AWS Lambda 関数が Amazon SNS を使用して、ライブ配信情報(サムネイル画像 URL、配信タイトル、動画 URL)を SMS で通知する。
+5. AWS Lambda 関数がプッシュ通知内容のデータを解析して動画タイトル、動画 URL を取得する。
+6. AWS Lambda 関数が YouTube Data API v3 を実行し、現在ライブ配信中の場合はサムネイル画像 URL を取得して処理を継続し、それ以外の場合は以降の動作を行わずに正常終了する。
+7. AWS Lambda 関数が Amazon DynamoDB で処理済かを判定し、処理済の場合は以降の動作を行わずに正常終了する。
+8. AWS Lambda 関数が Amazon SNS を使用して、ライブ配信の情報を SMS で通知する。
 9. AWS Lambda 関数が処理結果を Amazon DynamoDB に記録する。
 
-## 2. アーキテクチャと技術スタック
+## 2. アーキテクチャ
 
 ### 2.1 使用サービス
 
@@ -106,7 +106,23 @@ YouTube Data API v3 を実行して取得した情報をもとに、Amazon SNS �
 
 SMS 通知の送信先電話番号は、AWS Systems Manager Parameter Store に安全に保管する。
 
-### 3.3 Google PubSubHubbub Hub サブスクリプション自動再登録
+### 3.3 重複 SMS 通知防止とデータ管理
+
+SMS 通知の送信後、以下の属性をもつ Amazon DynamoDB の項目を`ytlivemetadata-dynamodb` に記録する:
+
+| 属性名               | データ型 | 説明                                                |
+| -------------------- | -------- | --------------------------------------------------- |
+| `video_id`           | String   | ビデオ ID(パーティションキー)                       |
+| `notified_timestamp` | Number   | 通知時刻(Unix timestamp 形式)                       |
+| `is_notified`        | Boolean  | 通知済フラグ                                        |
+| `title`              | String   | 配信タイトル                                        |
+| `url`                | String   | 動画 URL                                            |
+| `thumbnail_url`      | String   | サムネイル画像 URL                                  |
+| `ttl`                | Number   | TTL(ストレージコスト最適化のため 30 日後に自動削除) |
+
+この項目の記録により、同一の`video_id`に対する Strong Consistency を使用した YouTube ライブ配信の重複 SMS 通知を確実に防止する。
+
+### 3.4 Google PubSubHubbub Hub サブスクリプション自動再登録
 
 Google PubSubHubbub Hub に登録したサブスクリプションの最大有効期間は 10 日間である。サービスの継続的な運用を保証するため、有効期間が設けられている Google PubSubHubbub Hub サブスクリプションに対し、自動的に再登録する仕組みとして、以下のステップを採用する:
 
