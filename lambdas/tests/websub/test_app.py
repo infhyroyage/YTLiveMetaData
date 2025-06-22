@@ -105,8 +105,8 @@ class TestSubscribeToPubsubhubbub:
         call_args = mock_requests_post.call_args
         data = call_args[1]["data"]
         
-        # Check if data contains expected hub.topic format
-        assert "channel_id=test_channel_id" in data
+        # Check if data contains expected hub.topic format (URL encoded)
+        assert "channel_id%3Dtest_channel_id" in data
         assert "hub.verify=async" in data
         assert "hub.mode=subscribe" in data
         assert "hub.secret=test_secret" in data

@@ -2,6 +2,6 @@
 .coverage
 .pytest_cache
 **/.DS_Store
-lambda/**/__pycache__
+lambdas/**/__pycache__
 response.json
 venv/
