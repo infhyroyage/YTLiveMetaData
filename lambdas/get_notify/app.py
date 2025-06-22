@@ -59,12 +59,12 @@ def vetify_query_params(query_params: Dict[str, str]) -> str | None:
     ):
         return f"Bad Request: Unexpected topic URL: {query_params.get('hub.topic')}"
 
-    if (
-        query_params.get("hub.lease_seconds")
-        and not query_params.get("hub.lease_seconds").isdigit()
-        and int(query_params.get("hub.lease_seconds")) != 828000
-    ):
-        return f"Bad Request: Invalid hub.lease_seconds: {query_params.get('hub.lease_seconds')}"
+    if query_params.get("hub.lease_seconds"):
+        lease_seconds = query_params.get("hub.lease_seconds")
+        if not lease_seconds.isdigit():
+            return f"Bad Request: Invalid hub.lease_seconds: {lease_seconds}"
+        if int(lease_seconds) != 828000:
+            return f"Bad Request: Invalid hub.lease_seconds: {lease_seconds}"
 
     return None
 
