@@ -90,23 +90,23 @@ def parse_websub_xml(xml_content: str) -> Dict[str, str]:
     """
     root: Element = fromstring(xml_content)
     namespaces: Dict[str, str] = {
-        'atom': 'http://www.w3.org/2005/Atom',
-        'yt': 'http://www.youtube.com/xml/schemas/2015'
+        "atom": "http://www.w3.org/2005/Atom",
+        "yt": "http://www.youtube.com/xml/schemas/2015",
     }
 
     # entryを検索
-    entry: Element | None = root.find('atom:entry', namespaces)
+    entry: Element | None = root.find("atom:entry", namespaces)
     if entry is None:
         raise ValueError("No entry found in XML")
 
     # ビデオIDを取得
-    video_id_element: Element | None = entry.find('yt:videoId', namespaces)
+    video_id_element: Element | None = entry.find("yt:videoId", namespaces)
     if video_id_element is None:
         raise ValueError("No videoId found in XML")
     video_id: str = video_id_element.text
 
     # タイトルを取得
-    title_element: Element | None = entry.find('atom:title', namespaces)
+    title_element: Element | None = entry.find("atom:title", namespaces)
     if title_element is None:
         raise ValueError("No title found in XML")
     title: str = title_element.text
@@ -114,7 +114,7 @@ def parse_websub_xml(xml_content: str) -> Dict[str, str]:
     return {
         "video_id": video_id,
         "title": title,
-        "url": f"https://www.youtube.com/watch?v={video_id}"
+        "url": f"https://www.youtube.com/watch?v={video_id}",
     }
 
 
@@ -158,7 +158,11 @@ def check_if_live_streaming(video_id: str) -> str | None:
     if live_broadcast_content == "live":
         thumbnails: Dict[str, Any] | None = snippet.get("thumbnails")
         if thumbnails:
-            for quality in ["high", "medium", "default"]: # 高解像度のサムネイル画像URLを優先的に取得
+            for quality in [
+                "high",
+                "medium",
+                "default",
+            ]:  # 高解像度のサムネイル画像URLを優先的に取得
                 if quality in thumbnails and "url" in thumbnails[quality]:
                     return thumbnails[quality]["url"]
         return ""
@@ -178,9 +182,7 @@ def check_if_notified(video_id: str) -> bool:
     """
     # DynamoDBから項目を取得し、項目が存在しない場合は未通知として判定
     response: Dict[str, Any] | None = dynamodb_client.get_item(
-        TableName=DYNAMODB_TABLE,
-        Key={"video_id": {"S": video_id}},
-        ConsistentRead=True
+        TableName=DYNAMODB_TABLE, Key={"video_id": {"S": video_id}}, ConsistentRead=True
     )
     if response is None or "Item" not in response:
         return False
@@ -217,7 +219,7 @@ def record_notified(video_id: str, title: str, url: str, thumbnail_url: str) -> 
         TableName=DYNAMODB_TABLE,
         Key={"video_id": {"S": video_id}},
         UpdateExpression=update_expression,
-        ExpressionAttributeValues=expression_attribute_values
+        ExpressionAttributeValues=expression_attribute_values,
     )
 
 
@@ -234,19 +236,10 @@ def send_sms_notification(title: str, url: str, thumbnail_url: str) -> None:
 
     # 配信タイトル、動画URL、サムネイル画像URLを個別に送信
     # サムネイル画像URLを取得できない(空文字列である)場合は通知しない
-    sns_client.publish(
-        PhoneNumber=phone_number,
-        Message=title
-    )
-    sns_client.publish(
-        PhoneNumber=phone_number,
-        Message=url
-    )
+    sns_client.publish(PhoneNumber=phone_number, Message=title)
+    sns_client.publish(PhoneNumber=phone_number, Message=url)
     if thumbnail_url:
-        sns_client.publish(
-            PhoneNumber=phone_number,
-            Message=thumbnail_url
-        )
+        sns_client.publish(PhoneNumber=phone_number, Message=thumbnail_url)
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -295,9 +288,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         # SMS通知の送信
         send_sms_notification(
-            video_data["title"],
-            video_data["url"],
-            video_data["thumbnail_url"]
+            video_data["title"], video_data["url"], video_data["thumbnail_url"]
         )
         logger.info("SMS notification sent for video %s", video_data["video_id"])
 

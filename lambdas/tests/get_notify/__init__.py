@@ -1,1 +1,0 @@
-# Test package for get_notify Lambda function

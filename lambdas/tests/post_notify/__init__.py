@@ -1,1 +1,0 @@
-# Test package for post_notify Lambda function
