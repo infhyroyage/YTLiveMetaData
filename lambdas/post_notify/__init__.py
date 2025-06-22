@@ -1,0 +1,1 @@
+# post_notify Lambda function package

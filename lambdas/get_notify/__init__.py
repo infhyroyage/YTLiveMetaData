@@ -1,0 +1,1 @@
+# get_notify Lambda function package
