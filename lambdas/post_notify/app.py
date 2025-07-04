@@ -205,9 +205,12 @@ def record_notified(video_id: str, title: str, url: str, thumbnail_url: str) -> 
         "SET notified_timestamp = :notified_timestamp, "
         "is_notified = :is_notified, "
         "title = :title, "
-        "url = :url, "
+        "#url = :url, "
         "thumbnail_url = :thumbnail_url"
     )
+    expression_attribute_names: Dict[str, str] = {
+        "#url": "url"
+    }
     expression_attribute_values: Dict[str, Any] = {
         ":notified_timestamp": {"N": str(int(time.time()))},
         ":is_notified": {"BOOL": True},
@@ -219,6 +222,7 @@ def record_notified(video_id: str, title: str, url: str, thumbnail_url: str) -> 
         TableName=DYNAMODB_TABLE,
         Key={"video_id": {"S": video_id}},
         UpdateExpression=update_expression,
+        ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues=expression_attribute_values,
     )
 
