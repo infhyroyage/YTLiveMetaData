@@ -437,7 +437,26 @@ class TestRecordNotified:
                     "test_video_id", "Test Title", "test_url", "test_thumbnail"
                 )
 
-                mock_dynamodb_client.update_item.assert_called_once()
+                # DynamoDB update_item が正しい引数で呼び出されることを検証
+                mock_dynamodb_client.update_item.assert_called_once_with(
+                    TableName="test-dynamodb-table",
+                    Key={"video_id": {"S": "test_video_id"}},
+                    UpdateExpression=(
+                        "SET notified_timestamp = :notified_timestamp, "
+                        "is_notified = :is_notified, "
+                        "title = :title, "
+                        "#url = :url, "
+                        "thumbnail_url = :thumbnail_url"
+                    ),
+                    ExpressionAttributeNames={"#url": "url"},
+                    ExpressionAttributeValues={
+                        ":notified_timestamp": {"N": "1234567890"},
+                        ":is_notified": {"BOOL": True},
+                        ":title": {"S": "Test Title"},
+                        ":url": {"S": "test_url"},
+                        ":thumbnail_url": {"S": "test_thumbnail"},
+                    },
+                )
 
 
 @patch.dict(
