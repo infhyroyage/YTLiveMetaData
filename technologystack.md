@@ -104,7 +104,7 @@ Google PubSubHubbub Hub がプッシュ通知したデータ、および YouTube
 - 動画 URL (`https://www.youtube.com/watch?v={ビデオ ID}`)
 - サムネイル画像 URL
 
-SMS 通知の送信先電話番号は、AWS Systems Manager Parameter Store に安全に保管する。
+Amazon SNS では、通知成功・失敗の状態や通知先電話番号などを含む配信ログを Amazon CloudWatch に記録する。
 
 ### 3.3 重複 SMS 通知防止とデータ管理
 

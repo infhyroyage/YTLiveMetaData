@@ -95,6 +95,7 @@ Resources:
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: ytlivemetadata-role-codebuild
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -142,6 +143,7 @@ Resources:
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: ytlivemetadata-role-codepipeline
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -196,6 +198,7 @@ Resources:
   CloudFormationExecutionRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: ytlivemetadata-role-cloudformation-execution
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:

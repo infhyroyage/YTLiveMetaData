@@ -69,7 +69,19 @@ aws cloudformation deploy \
 > [!NOTE]  
 > このデプロイ完了直後に、CI/CD パイプラインである CodePipeline(`ytlivemetadata-stack-pipeline`) が自動実行し、SAM テンプレートによるサーバーレスアプリケーションの実行環境用 CloudFormation スタックのデプロイも自動実行する。この実行状況は、AWS マネジメントコンソールの CloudFormation のスタックから確認できる。
 
-### 5. Google PubSubHubbub Hub の初期設定
+### 5. SNS の SMS 配信ログの有効化
+
+以下のコマンドを実行して、CloudWatch ロググループへの SNS の SMS 配信ログ設定を有効化する:
+
+```bash
+aws sns set-sms-attributes \
+  --attributes \
+    'DeliveryStatusLogging=true' \
+    'DeliveryStatusLogCloudWatchLogsRole=arn:aws:iam::{AWSアカウントID}:role/ytlivemetadata-role-sns-cloudwatch-logs' \
+    'DeliveryStatusSuccessSamplingRate=100'
+```
+
+### 6. Google PubSubHubbub Hub の初期設定
 
 以下のコマンドを実行し、Lambda 関数`ytlivemetadata-lambda-websub`を手動実行して、Google PubSubHubbub Hub に登録する:
 
@@ -79,29 +91,37 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
 
 ## 削除手順
 
-1. SAM テンプレートでデプロイしたスタックを削除する:
+1. SNS の SMS 配信ログの設定を無効化する:
+
+   ```bash
+   aws sns set-sms-attributes \
+     --attributes \
+       'DeliveryStatusLogging=false'
+   ```
+
+2. SAM テンプレートでデプロイしたスタックを削除する:
 
    ```bash
    aws cloudformation delete-stack --stack-name ytlivemetadata-stack-sam
    ```
 
-2. Amazon S3 バケット内のすべてのオブジェクトを削除する:
+3. Amazon S3 バケット内のすべてのオブジェクトを削除する:
 
    ```bash
    aws s3 rm s3://{決定したS3バケット名} --recursive
    ```
 
-3. CloudFormation テンプレートでデプロイしたスタックを削除する:
+4. CloudFormation テンプレートでデプロイしたスタックを削除する:
 
    ```bash
    aws cloudformation delete-stack --stack-name ytlivemetadata-stack-pipeline
    ```
 
-4. 機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)の SSM パラメータを削除する:
+5. 機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)の SSM パラメータを削除する:
 
    ```bash
    aws ssm delete-parameter --name "/ytlivemetadata/youtube_api_key"
    aws ssm delete-parameter --name "/ytlivemetadata/phone_number"
    ```
 
-5. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する
+6. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する
