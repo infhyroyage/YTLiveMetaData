@@ -313,7 +313,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 StackName: ytlivemetadata-stack-sam
                 TemplatePath: BuildOutput::packaged.yaml
-                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                Capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt CloudFormationExecutionRole.Arn
               InputArtifacts:
                 - Name: BuildOutput
