@@ -233,6 +233,8 @@ Resources:
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-post-notify-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-websub-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-stack-sam-*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-role-apigateway-cloudwatch-logs"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-role-sns-cloudwatch-logs"
               - Effect: Allow
                 Action: "lambda:*"
                 Resource:
