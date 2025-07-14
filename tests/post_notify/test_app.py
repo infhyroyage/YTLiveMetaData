@@ -1,4 +1,4 @@
-"""Test post_notify Lambda function"""
+"""post_notify Lambda関数のテスト"""
 
 import hashlib
 import hmac
@@ -21,10 +21,10 @@ import pytest
     },
 )
 class TestGetParameterValue:
-    """get_parameter_value function tests"""
+    """get_parameter_value関数のテスト"""
 
     def test_get_parameter_value_success(self):
-        """Test successful parameter retrieval"""
+        """パラメータ取得の成功テスト"""
         from lambdas.post_notify.app import get_parameter_value
 
         with patch("lambdas.post_notify.app.ssm_client") as mock_ssm_client:
@@ -51,16 +51,16 @@ class TestGetParameterValue:
     },
 )
 class TestVerifyHmacSignature:
-    """verify_hmac_signature function tests"""
+    """verify_hmac_signature関数のテスト"""
 
     def test_verify_hmac_signature_success(self):
-        """Test successful HMAC signature verification"""
+        """HMAC署名検証の成功テスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
         with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.return_value = "secret_key"
 
-            # Calculate expected signature
+            # 期待される署名を計算
             body = "test_body"
             expected_signature = hmac.new(
                 "secret_key".encode("utf-8"), body.encode("utf-8"), hashlib.sha1
@@ -76,7 +76,7 @@ class TestVerifyHmacSignature:
             assert result is None
 
     def test_verify_hmac_signature_missing_header(self):
-        """Test missing X-Hub-Signature header"""
+        """X-Hub-Signatureヘッダー不足のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
         event = {"headers": {}, "body": "test_body"}
@@ -86,7 +86,7 @@ class TestVerifyHmacSignature:
         assert result == "Missing X-Hub-Signature header"
 
     def test_verify_hmac_signature_unsupported_method(self):
-        """Test unsupported signature method"""
+        """サポートされていない署名方式のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
         with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
@@ -102,7 +102,7 @@ class TestVerifyHmacSignature:
             assert result == "Unsupported signature method: md5"
 
     def test_verify_hmac_signature_verification_failed(self):
-        """Test HMAC signature verification failure"""
+        """HMAC署名検証失敗のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
         with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
@@ -118,7 +118,7 @@ class TestVerifyHmacSignature:
             assert result == "HMAC signature verification failed"
 
     def test_verify_hmac_signature_case_insensitive_headers(self):
-        """Test case insensitive header handling"""
+        """大文字小文字を区別しないヘッダー処理のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
         with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
@@ -130,9 +130,7 @@ class TestVerifyHmacSignature:
             ).hexdigest()
 
             event = {
-                "headers": {
-                    "x-hub-signature": f"sha1={expected_signature}"  # lowercase
-                },
+                "headers": {"x-hub-signature": f"sha1={expected_signature}"},  # 小文字
                 "body": body,
             }
 
@@ -152,10 +150,10 @@ class TestVerifyHmacSignature:
     },
 )
 class TestParseWebsubXml:
-    """parse_websub_xml function tests"""
+    """parse_websub_xml関数のテスト"""
 
     def test_parse_websub_xml_success(self):
-        """Test successful XML parsing"""
+        """XML解析の成功テスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -173,7 +171,7 @@ class TestParseWebsubXml:
         assert result["url"] == "https://www.youtube.com/watch?v=test_video_id"
 
     def test_parse_websub_xml_no_entry(self):
-        """Test XML parsing with no entry"""
+        """エントリなしのXML解析テスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -184,7 +182,7 @@ class TestParseWebsubXml:
             parse_websub_xml(xml_content)
 
     def test_parse_websub_xml_no_video_id(self):
-        """Test XML parsing with no video ID"""
+        """ビデオIDなしのXML解析テスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -198,7 +196,7 @@ class TestParseWebsubXml:
             parse_websub_xml(xml_content)
 
     def test_parse_websub_xml_no_title(self):
-        """Test XML parsing with no title"""
+        """タイトルなしのXML解析テスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -223,10 +221,10 @@ class TestParseWebsubXml:
     },
 )
 class TestCheckIfLiveStreaming:
-    """check_if_live_streaming function tests"""
+    """check_if_live_streaming関数のテスト"""
 
     def test_check_if_live_streaming_live(self):
-        """Test live streaming check when video is live"""
+        """ライブ配信中のチェックテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
         with patch("lambdas.post_notify.app.requests.get") as mock_requests:
@@ -259,7 +257,7 @@ class TestCheckIfLiveStreaming:
                 assert result == "https://example.com/high.jpg"
 
     def test_check_if_live_streaming_not_live(self):
-        """Test live streaming check when video is not live"""
+        """ライブ配信中ではない場合のチェックテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
         with patch("lambdas.post_notify.app.requests.get") as mock_requests:
@@ -279,7 +277,7 @@ class TestCheckIfLiveStreaming:
                 assert result is None
 
     def test_check_if_live_streaming_no_thumbnails(self):
-        """Test live streaming check when no thumbnails are available"""
+        """サムネイルが利用できない場合のライブ配信チェックテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
         with patch("lambdas.post_notify.app.requests.get") as mock_requests:
@@ -299,7 +297,7 @@ class TestCheckIfLiveStreaming:
                 assert result == ""
 
     def test_check_if_live_streaming_no_items(self):
-        """Test live streaming check when no items are returned"""
+        """アイテムが返されない場合のライブ配信チェックテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
         with patch("lambdas.post_notify.app.requests.get") as mock_requests:
@@ -316,7 +314,7 @@ class TestCheckIfLiveStreaming:
                     check_if_live_streaming("test_video_id")
 
     def test_check_if_live_streaming_no_snippet(self):
-        """Test live streaming check when no snippet is returned"""
+        """スニペットが返されない場合のライブ配信チェックテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
         with patch("lambdas.post_notify.app.requests.get") as mock_requests:
@@ -333,7 +331,7 @@ class TestCheckIfLiveStreaming:
                     check_if_live_streaming("test_video_id")
 
     def test_check_if_live_streaming_no_live_broadcast_content(self):
-        """Test live streaming check when no liveBroadcastContent is returned"""
+        """liveBroadcastContentが返されない場合のライブ配信チェックテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
         with patch("lambdas.post_notify.app.requests.get") as mock_requests:
@@ -361,10 +359,10 @@ class TestCheckIfLiveStreaming:
     },
 )
 class TestCheckIfNotified:
-    """check_if_notified function tests"""
+    """check_if_notified関数のテスト"""
 
     def test_check_if_notified_true(self):
-        """Test check if notified returns True"""
+        """通知済みチェックでTrueが返される場合のテスト"""
         from lambdas.post_notify.app import check_if_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -377,7 +375,7 @@ class TestCheckIfNotified:
             assert result is True
 
     def test_check_if_notified_false(self):
-        """Test check if notified returns False"""
+        """通知済みチェックでFalseが返される場合のテスト"""
         from lambdas.post_notify.app import check_if_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -390,7 +388,7 @@ class TestCheckIfNotified:
             assert result is False
 
     def test_check_if_notified_no_item(self):
-        """Test check if notified when no item exists"""
+        """アイテムが存在しない場合の通知済みチェックテスト"""
         from lambdas.post_notify.app import check_if_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -401,7 +399,7 @@ class TestCheckIfNotified:
             assert result is False
 
     def test_check_if_notified_none_response(self):
-        """Test check if notified when response is None"""
+        """レスポンスがNoneの場合の通知済みチェックテスト"""
         from lambdas.post_notify.app import check_if_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -423,10 +421,10 @@ class TestCheckIfNotified:
     },
 )
 class TestRecordNotified:
-    """record_notified function tests"""
+    """record_notified関数のテスト"""
 
     def test_record_notified_success(self):
-        """Test successful record notified"""
+        """通知記録の成功テスト"""
         from lambdas.post_notify.app import record_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -470,10 +468,10 @@ class TestRecordNotified:
     },
 )
 class TestSendSmsNotification:
-    """send_sms_notification function tests"""
+    """send_sms_notification関数のテスト"""
 
     def test_send_sms_notification_with_thumbnail(self):
-        """Test SMS notification with thumbnail"""
+        """サムネイル付きSMS通知のテスト"""
         from lambdas.post_notify.app import send_sms_notification
 
         with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
@@ -487,7 +485,7 @@ class TestSendSmsNotification:
                 assert mock_sns_client.publish.call_count == 3
 
     def test_send_sms_notification_without_thumbnail(self):
-        """Test SMS notification without thumbnail"""
+        """サムネイルなしSMS通知のテスト"""
         from lambdas.post_notify.app import send_sms_notification
 
         with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
@@ -512,10 +510,10 @@ class TestSendSmsNotification:
     },
 )
 class TestLambdaHandler:
-    """lambda_handler function tests"""
+    """lambda_handler関数のテスト"""
 
     def test_lambda_handler_success(self):
-        """Test successful Lambda handler execution"""
+        """Lambda関数ハンドラーの成功実行テスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch("lambdas.post_notify.app.record_notified"):
@@ -549,7 +547,7 @@ class TestLambdaHandler:
                                 assert result["body"] == "OK"
 
     def test_lambda_handler_hmac_verification_failed(self):
-        """Test Lambda handler when HMAC verification fails"""
+        """HMAC検証失敗時のLambda関数ハンドラーテスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch("lambdas.post_notify.app.verify_hmac_signature") as mock_verify:
@@ -563,7 +561,7 @@ class TestLambdaHandler:
             assert result["body"] == "HMAC verification failed"
 
     def test_lambda_handler_not_live_stream(self):
-        """Test Lambda handler when video is not live stream"""
+        """ライブ配信ではない場合のLambda関数ハンドラーテスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch(
@@ -589,7 +587,7 @@ class TestLambdaHandler:
                     assert result["body"] == "OK"
 
     def test_lambda_handler_already_notified(self):
-        """Test Lambda handler when already notified"""
+        """既に通知済みの場合のLambda関数ハンドラーテスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch("lambdas.post_notify.app.check_if_notified") as mock_check_notified:
@@ -617,7 +615,7 @@ class TestLambdaHandler:
                         assert result["body"] == "OK"
 
     def test_lambda_handler_exception(self):
-        """Test Lambda handler when exception occurs"""
+        """例外発生時のLambda関数ハンドラーテスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch("lambdas.post_notify.app.verify_hmac_signature") as mock_verify:

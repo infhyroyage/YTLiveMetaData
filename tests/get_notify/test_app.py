@@ -1,4 +1,4 @@
-"""Test get_notify Lambda function"""
+"""get_notify Lambda関数のテスト"""
 
 import os
 from unittest.mock import patch
@@ -14,10 +14,10 @@ from unittest.mock import patch
     },
 )
 class TestGetParameterValue:
-    """get_parameter_value function tests"""
+    """get_parameter_value関数のテスト"""
 
     def test_get_parameter_value_success(self):
-        """Test successful parameter retrieval"""
+        """パラメータ取得の成功テスト"""
         from lambdas.get_notify.app import get_parameter_value
 
         with patch("lambdas.get_notify.app.ssm_client") as mock_ssm_client:
@@ -41,10 +41,10 @@ class TestGetParameterValue:
     },
 )
 class TestVerifyQueryParams:
-    """vetify_query_params function tests"""
+    """vetify_query_params関数のテスト"""
 
     def test_verify_query_params_success(self):
-        """Test successful query parameter verification"""
+        """クエリパラメータ検証の成功テスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
@@ -65,7 +65,7 @@ class TestVerifyQueryParams:
             assert result is None
 
     def test_verify_query_params_missing_challenge(self):
-        """Test missing hub.challenge parameter"""
+        """hub.challengeパラメータ不足のテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         query_params = {}
@@ -75,7 +75,7 @@ class TestVerifyQueryParams:
         assert result == "Bad Request: Missing hub.challenge parameter"
 
     def test_verify_query_params_invalid_mode(self):
-        """Test invalid hub.mode parameter"""
+        """無効なhub.modeパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         query_params = {"hub.challenge": "test_challenge", "hub.mode": "unsubscribe"}
@@ -85,7 +85,7 @@ class TestVerifyQueryParams:
         assert result == "Bad Request: Invalid hub.mode: unsubscribe"
 
     def test_verify_query_params_invalid_secret(self):
-        """Test invalid hub.secret parameter"""
+        """無効なhub.secretパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
@@ -102,7 +102,7 @@ class TestVerifyQueryParams:
             assert result == "Bad Request: Invalid hub.secret: wrong_secret"
 
     def test_verify_query_params_invalid_topic(self):
-        """Test invalid hub.topic parameter"""
+        """無効なhub.topicパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
@@ -122,7 +122,7 @@ class TestVerifyQueryParams:
             assert "Bad Request: Unexpected topic URL:" in result
 
     def test_verify_query_params_invalid_lease_seconds(self):
-        """Test invalid hub.lease_seconds parameter"""
+        """無効なhub.lease_secondsパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
@@ -143,7 +143,7 @@ class TestVerifyQueryParams:
             assert "Bad Request: Invalid hub.lease_seconds:" in result
 
     def test_verify_query_params_wrong_lease_seconds_number(self):
-        """Test wrong hub.lease_seconds number"""
+        """誤ったhub.lease_seconds数値のテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
         with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
@@ -172,10 +172,10 @@ class TestVerifyQueryParams:
     },
 )
 class TestLambdaHandler:
-    """lambda_handler function tests"""
+    """lambda_handler関数のテスト"""
 
     def test_lambda_handler_success(self):
-        """Test successful Lambda handler execution"""
+        """Lambda関数ハンドラーの成功実行テスト"""
         from lambdas.get_notify.app import lambda_handler
 
         with patch("lambdas.get_notify.app.vetify_query_params") as mock_verify:
@@ -190,7 +190,7 @@ class TestLambdaHandler:
             assert result["body"] == "test_challenge"
 
     def test_lambda_handler_verification_failed(self):
-        """Test Lambda handler when verification fails"""
+        """検証失敗時のLambda関数ハンドラーテスト"""
         from lambdas.get_notify.app import lambda_handler
 
         with patch("lambdas.get_notify.app.vetify_query_params") as mock_verify:
@@ -204,7 +204,7 @@ class TestLambdaHandler:
             assert result["body"] == "Verification failed"
 
     def test_lambda_handler_no_query_params(self):
-        """Test Lambda handler with no query parameters"""
+        """クエリパラメータなしのLambda関数ハンドラーテスト"""
         from lambdas.get_notify.app import lambda_handler
 
         event = {}
@@ -218,7 +218,7 @@ class TestLambdaHandler:
             mock_verify.assert_called_once_with({})
 
     def test_lambda_handler_exception(self):
-        """Test Lambda handler when exception occurs"""
+        """例外発生時のLambda関数ハンドラーテスト"""
         from lambdas.get_notify.app import lambda_handler
 
         with patch("lambdas.get_notify.app.vetify_query_params") as mock_verify:

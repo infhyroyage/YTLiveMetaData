@@ -1,4 +1,4 @@
-"""Test websub Lambda function"""
+"""websub Lambda関数のテスト"""
 
 import os
 from unittest.mock import Mock, patch
@@ -21,10 +21,10 @@ import requests
     },
 )
 class TestGetParameterValue:
-    """get_parameter_value function tests"""
+    """get_parameter_value関数のテスト"""
 
     def test_get_parameter_value_success(self):
-        """Test successful parameter retrieval"""
+        """パラメータ取得の成功テスト"""
         from lambdas.websub.app import get_parameter_value
 
         with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
@@ -52,10 +52,10 @@ class TestGetParameterValue:
     },
 )
 class TestGenerateHmacSecret:
-    """generate_hmac_secret function tests"""
+    """generate_hmac_secret関数のテスト"""
 
     def test_generate_hmac_secret_success(self):
-        """Test successful HMAC secret generation"""
+        """HMACシークレット生成の成功テスト"""
         from lambdas.websub.app import generate_hmac_secret
 
         with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
@@ -84,10 +84,10 @@ class TestGenerateHmacSecret:
     },
 )
 class TestSubscribeToPubsubhubbub:
-    """subscribe_to_pubsubhubbub function tests"""
+    """subscribe_to_pubsubhubbub関数のテスト"""
 
     def test_subscribe_to_pubsubhubbub_success(self):
-        """Test successful subscription to PubSubHubbub"""
+        """PubSubHubbubへのサブスクリプション成功テスト"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
@@ -109,7 +109,7 @@ class TestSubscribeToPubsubhubbub:
             assert "hub.secret" in call_args[1]["data"]
 
     def test_subscribe_to_pubsubhubbub_failure(self):
-        """Test failed subscription to PubSubHubbub"""
+        """PubSubHubbubへのサブスクリプション失敗テスト"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
@@ -126,7 +126,7 @@ class TestSubscribeToPubsubhubbub:
                 )
 
     def test_subscribe_to_pubsubhubbub_correct_data_format(self):
-        """Test correct data format in subscription request"""
+        """サブスクリプションリクエストの正しいデータ形式テスト"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
@@ -144,14 +144,14 @@ class TestSubscribeToPubsubhubbub:
             call_args = mock_requests_post.call_args
             data = call_args[1]["data"]
 
-            # Check if data contains expected hub.topic format (URL encoded)
+            # データに期待されるhub.topic形式（URLエンコード済み）が含まれるかチェック
             assert "channel_id%3Dtest_channel_id" in data
             assert "hub.verify=async" in data
             assert "hub.mode=subscribe" in data
             assert "hub.secret=test_secret" in data
 
     def test_subscribe_to_pubsubhubbub_correct_headers(self):
-        """Test correct headers in subscription request"""
+        """サブスクリプションリクエストの正しいヘッダーテスト"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
@@ -173,12 +173,12 @@ class TestSubscribeToPubsubhubbub:
             assert headers["User-Agent"] == "YTLiveMetaData-WebSub/1.0"
 
     def test_subscribe_to_pubsubhubbub_429_retry_success(self):
-        """Test successful retry after 429 throttling error"""
+        """429スロットリングエラー後の再試行成功テスト"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
             with patch("lambdas.websub.app.time.sleep") as mock_sleep:
-                # First call returns 429, second call returns 202
+                # 最初の呼び出しは429、2回目の呼び出しは202を返す
                 mock_response_429 = Mock()
                 mock_response_429.status_code = 429
                 mock_response_429.text = "Throttled"
@@ -195,18 +195,18 @@ class TestSubscribeToPubsubhubbub:
                     hmac_secret="test_secret",
                 )
 
-                # Verify that requests.post was called twice
+                # requests.postが2回呼び出されることを検証
                 assert mock_requests_post.call_count == 2
-                # Verify that sleep was called once with 1.0 second delay (BASE_DELAY * 2^0)
+                # sleepが1秒遅延（BASE_DELAY * 2^0）で1回呼び出されることを検証
                 mock_sleep.assert_called_once_with(1.0)
 
     def test_subscribe_to_pubsubhubbub_429_max_retries_exceeded(self):
-        """Test failure after exceeding max retries for 429 errors"""
+        """429エラーの最大再試行回数超過後の失敗テスト"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
             with patch("lambdas.websub.app.time.sleep") as mock_sleep:
-                # Always return 429
+                # 常に429を返す
                 mock_response = Mock()
                 mock_response.status_code = 429
                 mock_response.text = "Throttled"
@@ -221,21 +221,21 @@ class TestSubscribeToPubsubhubbub:
                         hmac_secret="test_secret",
                     )
 
-                # Verify that requests.post was called 6 times (initial + 5 retries)
+                # requests.postが6回（初回 + 5回再試行）呼び出されることを検証
                 assert mock_requests_post.call_count == 6
-                # Verify that sleep was called 5 times with exponential backoff
+                # sleepが指数バックオフで5回呼び出されることを検証
                 assert mock_sleep.call_count == 5
                 expected_delays = [1.0, 2.0, 4.0, 8.0, 16.0]
                 for i, call in enumerate(mock_sleep.call_args_list):
                     assert call[0][0] == expected_delays[i]
 
     def test_subscribe_to_pubsubhubbub_network_error_immediate_failure(self):
-        """Test immediate failure for network errors (no retry)"""
+        """ネットワークエラーの即座の失敗テスト（再試行なし）"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
             with patch("lambdas.websub.app.time.sleep") as mock_sleep:
-                # Network error should not be retried
+                # ネットワークエラーは再試行すべきでない
                 mock_requests_post.side_effect = requests.exceptions.ConnectionError(
                     "Network error"
                 )
@@ -247,18 +247,18 @@ class TestSubscribeToPubsubhubbub:
                         hmac_secret="test_secret",
                     )
 
-                # Verify that requests.post was called only once (no retries)
+                # requests.postが1回のみ（再試行なし）呼び出されることを検証
                 assert mock_requests_post.call_count == 1
-                # Verify that sleep was not called
+                # sleepが呼び出されないことを検証
                 mock_sleep.assert_not_called()
 
     def test_subscribe_to_pubsubhubbub_non_retryable_error(self):
-        """Test immediate failure for non-retryable errors (non-429, non-network)"""
+        """再試行不可能なエラーの即座の失敗テスト（429、ネットワーク以外）"""
         from lambdas.websub.app import subscribe_to_pubsubhubbub
 
         with patch("lambdas.websub.app.requests.post") as mock_requests_post:
             with patch("lambdas.websub.app.time.sleep") as mock_sleep:
-                # Return 500 error (non-retryable)
+                # 500エラー（再試行不可能）を返す
                 mock_response = Mock()
                 mock_response.status_code = 500
                 mock_response.text = "Internal Server Error"
@@ -273,9 +273,9 @@ class TestSubscribeToPubsubhubbub:
                         hmac_secret="test_secret",
                     )
 
-                # Verify that requests.post was called only once (no retries)
+                # requests.postが1回のみ（再試行なし）呼び出されることを検証
                 assert mock_requests_post.call_count == 1
-                # Verify that sleep was not called
+                # sleepが呼び出されないことを検証
                 mock_sleep.assert_not_called()
 
 
@@ -291,10 +291,10 @@ class TestSubscribeToPubsubhubbub:
     },
 )
 class TestLambdaHandler:
-    """lambda_handler function tests"""
+    """lambda_handler関数のテスト"""
 
     def test_lambda_handler_success(self):
-        """Test successful Lambda handler execution"""
+        """Lambda関数ハンドラーの成功実行テスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub") as mock_subscribe:
@@ -323,7 +323,7 @@ class TestLambdaHandler:
                     )
 
     def test_lambda_handler_get_parameter_exception(self):
-        """Test Lambda handler when get_parameter_value raises exception"""
+        """get_parameter_valueで例外が発生した場合のLambda関数ハンドラーテスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.get_parameter_value") as mock_get_parameter:
@@ -337,7 +337,7 @@ class TestLambdaHandler:
             assert result["body"] == "Internal server error"
 
     def test_lambda_handler_generate_secret_exception(self):
-        """Test Lambda handler when generate_hmac_secret raises exception"""
+        """generate_hmac_secretで例外が発生した場合のLambda関数ハンドラーテスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub"):
@@ -363,7 +363,7 @@ class TestLambdaHandler:
                     assert result["body"] == "Internal server error"
 
     def test_lambda_handler_subscribe_exception(self):
-        """Test Lambda handler when subscribe_to_pubsubhubbub raises exception"""
+        """subscribe_to_pubsubhubbubで例外が発生した場合のLambda関数ハンドラーテスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub") as mock_subscribe:
@@ -388,7 +388,7 @@ class TestLambdaHandler:
                     assert result["body"] == "Internal server error"
 
     def test_lambda_handler_parameter_order(self):
-        """Test parameter retrieval order in Lambda handler"""
+        """Lambda関数ハンドラーでのパラメータ取得順序テスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub"):
@@ -408,8 +408,8 @@ class TestLambdaHandler:
 
                     lambda_handler(event, None)
 
-                    # Verify that parameters are retrieved in the correct order
+                    # パラメータが正しい順序で取得されることを検証
                     actual_calls = [
                         call[0] for call in mock_get_parameter.call_args_list
                     ]
-                    assert len(actual_calls) == 2  # Should be called twice
+                    assert len(actual_calls) == 2  # 2回呼び出される必要がある
