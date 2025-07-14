@@ -69,15 +69,14 @@ def subscribe_to_pubsubhubbub(
 ) -> None:
     """
     Google PubSubHubbub Hub にサブスクリプションを登録する
-    429エラー（スロットル）発生時は指数バックオフで再試行する
 
     Args:
         channel_id (str): チャンネルID
         callback_url (str): コールバックURL
         hmac_secret (str): HMACシークレット
-    
+
     Raises:
-        Exception: 最大再試行回数を超えた場合、または429以外のエラーが発生した場合
+        Exception: 指数バックオフでの最大再試行回数を超えた場合、またはスロットルエラー以外のエラーが発生した場合
     """
     # Google PubSubHubbub Hub にPOSTリクエストを送信
     data: str = urllib.parse.urlencode(
@@ -95,77 +94,57 @@ def subscribe_to_pubsubhubbub(
         "User-Agent": "YTLiveMetaData-WebSub/1.0",
     }
 
+    # 指数バックオフで再試行
     for attempt in range(MAX_RETRIES + 1):
-        try:
-            response = requests.post(
-                url=PUBSUBHUBBUB_HUB_URL,
-                data=data,
-                headers=headers,
-                timeout=30,
-            )
+        response = requests.post(
+            url=PUBSUBHUBBUB_HUB_URL,
+            data=data,
+            headers=headers,
+            timeout=30,
+        )
 
-            logger.info("Response status code: %d", response.status_code)
-            logger.info("Response text: %s", response.text)
+        logger.info("Response status code: %d", response.status_code)
+        logger.info("Response text: %s", response.text)
 
-            if response.status_code == 202:
-                # 成功
-                logger.info("Subscription successful on attempt %d", attempt + 1)
-                return
-            elif response.status_code == 429:
-                # スロットルエラー
-                if attempt < MAX_RETRIES:
-                    delay = BASE_DELAY * (2 ** attempt)
-                    logger.warning(
-                        "Throttled (429) on attempt %d/%d. Retrying in %.1f seconds...",
-                        attempt + 1,
-                        MAX_RETRIES + 1,
-                        delay
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    logger.error(
-                        "Subscription failed after %d attempts due to throttling",
-                        MAX_RETRIES + 1
-                    )
-                    raise Exception(
-                        f"Subscription failed after {MAX_RETRIES + 1} attempts: "
-                        f"status code: {response.status_code}, "
-                        f"response: {response.text}"
-                    )
-            else:
-                # その他のエラー（429以外）
-                logger.error(
-                    "Subscription failed with non-retryable error: "
-                    "status code: %d, response: %s",
-                    response.status_code,
-                    response.text
-                )
-                raise Exception(
-                    f"Subscription failed: "
-                    f"status code: {response.status_code}, "
-                    f"response: {response.text}"
-                )
+        # 成功
+        if response.status_code == 202:
+            logger.info("Subscription successful on attempt %d", attempt + 1)
+            return
 
-        except requests.exceptions.RequestException as e:
-            # ネットワークエラーなど
+        # スロットルエラー
+        if response.status_code == 429:
             if attempt < MAX_RETRIES:
-                delay = BASE_DELAY * (2 ** attempt)
+                delay = BASE_DELAY * (2**attempt)
                 logger.warning(
-                    "Request failed on attempt %d/%d due to network error: %s. Retrying in %.1f seconds...",
+                    "Throttled (429) on attempt %d/%d. Retrying in %.1f seconds...",
                     attempt + 1,
                     MAX_RETRIES + 1,
-                    str(e),
-                    delay
+                    delay,
                 )
                 time.sleep(delay)
                 continue
-            else:
-                logger.error(
-                    "Subscription failed after %d attempts due to network errors",
-                    MAX_RETRIES + 1
-                )
-                raise Exception(f"Subscription failed after network errors: {str(e)}")
+
+            logger.error(
+                "Subscription failed after %d attempts due to throttling",
+                MAX_RETRIES + 1,
+            )
+            raise Exception(
+                f"Subscription failed after {MAX_RETRIES + 1} attempts: "
+                f"status code: {response.status_code}, "
+                f"response: {response.text}"
+            )
+
+        logger.error(
+            "Subscription failed with non-retryable error: "
+            "status code: %d, response: %s",
+            response.status_code,
+            response.text,
+        )
+        raise Exception(
+            f"Subscription failed: "
+            f"status code: {response.status_code}, "
+            f"response: {response.text}"
+        )
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
