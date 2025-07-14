@@ -4,6 +4,7 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 
 # pylint: disable=import-outside-toplevel,too-few-public-methods
 
@@ -170,6 +171,112 @@ class TestSubscribeToPubsubhubbub:
 
             assert headers["Content-Type"] == "application/x-www-form-urlencoded"
             assert headers["User-Agent"] == "YTLiveMetaData-WebSub/1.0"
+
+    def test_subscribe_to_pubsubhubbub_429_retry_success(self):
+        """Test successful retry after 429 throttling error"""
+        from lambdas.websub.app import subscribe_to_pubsubhubbub
+
+        with patch("lambdas.websub.app.requests.post") as mock_requests_post:
+            with patch("lambdas.websub.app.time.sleep") as mock_sleep:
+                # First call returns 429, second call returns 202
+                mock_response_429 = Mock()
+                mock_response_429.status_code = 429
+                mock_response_429.text = "Throttled"
+
+                mock_response_202 = Mock()
+                mock_response_202.status_code = 202
+                mock_response_202.text = "Accepted"
+
+                mock_requests_post.side_effect = [mock_response_429, mock_response_202]
+
+                subscribe_to_pubsubhubbub(
+                    channel_id="test_channel_id",
+                    callback_url="https://example.com/callback",
+                    hmac_secret="test_secret",
+                )
+
+                # Verify that requests.post was called twice
+                assert mock_requests_post.call_count == 2
+                # Verify that sleep was called once with 1.0 second delay (BASE_DELAY * 2^0)
+                mock_sleep.assert_called_once_with(1.0)
+
+    def test_subscribe_to_pubsubhubbub_429_max_retries_exceeded(self):
+        """Test failure after exceeding max retries for 429 errors"""
+        from lambdas.websub.app import subscribe_to_pubsubhubbub
+
+        with patch("lambdas.websub.app.requests.post") as mock_requests_post:
+            with patch("lambdas.websub.app.time.sleep") as mock_sleep:
+                # Always return 429
+                mock_response = Mock()
+                mock_response.status_code = 429
+                mock_response.text = "Throttled"
+                mock_requests_post.return_value = mock_response
+
+                with pytest.raises(
+                    Exception, match="Subscription failed after 6 attempts"
+                ):
+                    subscribe_to_pubsubhubbub(
+                        channel_id="test_channel_id",
+                        callback_url="https://example.com/callback",
+                        hmac_secret="test_secret",
+                    )
+
+                # Verify that requests.post was called 6 times (initial + 5 retries)
+                assert mock_requests_post.call_count == 6
+                # Verify that sleep was called 5 times with exponential backoff
+                assert mock_sleep.call_count == 5
+                expected_delays = [1.0, 2.0, 4.0, 8.0, 16.0]
+                for i, call in enumerate(mock_sleep.call_args_list):
+                    assert call[0][0] == expected_delays[i]
+
+    def test_subscribe_to_pubsubhubbub_network_error_immediate_failure(self):
+        """Test immediate failure for network errors (no retry)"""
+        from lambdas.websub.app import subscribe_to_pubsubhubbub
+
+        with patch("lambdas.websub.app.requests.post") as mock_requests_post:
+            with patch("lambdas.websub.app.time.sleep") as mock_sleep:
+                # Network error should not be retried
+                mock_requests_post.side_effect = requests.exceptions.ConnectionError(
+                    "Network error"
+                )
+
+                with pytest.raises(requests.exceptions.ConnectionError):
+                    subscribe_to_pubsubhubbub(
+                        channel_id="test_channel_id",
+                        callback_url="https://example.com/callback",
+                        hmac_secret="test_secret",
+                    )
+
+                # Verify that requests.post was called only once (no retries)
+                assert mock_requests_post.call_count == 1
+                # Verify that sleep was not called
+                mock_sleep.assert_not_called()
+
+    def test_subscribe_to_pubsubhubbub_non_retryable_error(self):
+        """Test immediate failure for non-retryable errors (non-429, non-network)"""
+        from lambdas.websub.app import subscribe_to_pubsubhubbub
+
+        with patch("lambdas.websub.app.requests.post") as mock_requests_post:
+            with patch("lambdas.websub.app.time.sleep") as mock_sleep:
+                # Return 500 error (non-retryable)
+                mock_response = Mock()
+                mock_response.status_code = 500
+                mock_response.text = "Internal Server Error"
+                mock_requests_post.return_value = mock_response
+
+                with pytest.raises(
+                    Exception, match="Subscription failed: status code: 500"
+                ):
+                    subscribe_to_pubsubhubbub(
+                        channel_id="test_channel_id",
+                        callback_url="https://example.com/callback",
+                        hmac_secret="test_secret",
+                    )
+
+                # Verify that requests.post was called only once (no retries)
+                assert mock_requests_post.call_count == 1
+                # Verify that sleep was not called
+                mock_sleep.assert_not_called()
 
 
 @patch.dict(
