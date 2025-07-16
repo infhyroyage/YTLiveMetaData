@@ -78,7 +78,7 @@ class TestVerifyHmacSignature:
         """HMAC署名検証が失敗した場合のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_secret"
 
             event = {
@@ -100,7 +100,7 @@ class TestVerifyHmacSignature:
             test_secret.encode("utf-8"), test_body.encode("utf-8"), hashlib.sha1
         ).hexdigest()
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = test_secret
 
             event = {
@@ -122,7 +122,7 @@ class TestVerifyHmacSignature:
             test_secret.encode("utf-8"), test_body.encode("utf-8"), hashlib.sha256
         ).hexdigest()
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = test_secret
 
             event = {
@@ -245,7 +245,7 @@ class TestCheckIfLiveStreaming:
         }
         mock_response.raise_for_status.return_value = None
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_api_key"
             with patch("lambdas.post_notify.app.requests.get") as mock_get:
                 mock_get.return_value = mock_response
@@ -264,7 +264,7 @@ class TestCheckIfLiveStreaming:
         }
         mock_response.raise_for_status.return_value = None
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_api_key"
             with patch("lambdas.post_notify.app.requests.get") as mock_get:
                 mock_get.return_value = mock_response
@@ -283,7 +283,7 @@ class TestCheckIfLiveStreaming:
         }
         mock_response.raise_for_status.return_value = None
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_api_key"
             with patch("lambdas.post_notify.app.requests.get") as mock_get:
                 mock_get.return_value = mock_response
@@ -300,7 +300,7 @@ class TestCheckIfLiveStreaming:
         mock_response.json.return_value = {"items": None}
         mock_response.raise_for_status.return_value = None
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_api_key"
             with patch("lambdas.post_notify.app.requests.get") as mock_get:
                 mock_get.return_value = mock_response
@@ -316,7 +316,7 @@ class TestCheckIfLiveStreaming:
         mock_response.json.return_value = {"items": [{}]}
         mock_response.raise_for_status.return_value = None
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_api_key"
             with patch("lambdas.post_notify.app.requests.get") as mock_get:
                 mock_get.return_value = mock_response
@@ -332,7 +332,7 @@ class TestCheckIfLiveStreaming:
         mock_response.json.return_value = {"items": [{"snippet": {}}]}
         mock_response.raise_for_status.return_value = None
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "test_api_key"
             with patch("lambdas.post_notify.app.requests.get") as mock_get:
                 mock_get.return_value = mock_response
@@ -465,7 +465,7 @@ class TestSendSmsNotification:
         """サムネイルありでSMS通知を送信した場合のテスト"""
         from lambdas.post_notify.app import send_sms_notification
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "+1234567890"
             with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
                 send_sms_notification(
@@ -490,7 +490,7 @@ class TestSendSmsNotification:
         """サムネイルなしでSMS通知を送信した場合のテスト"""
         from lambdas.post_notify.app import send_sms_notification
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+        with patch("ssm_utils.get_parameter_value") as mock_get_param:
             mock_get_param.return_value = "+1234567890"
             with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
                 send_sms_notification("Test Title", "https://example.com/video", "")

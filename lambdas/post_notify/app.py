@@ -11,6 +11,7 @@ from xml.etree.ElementTree import Element, fromstring
 
 import boto3
 import requests
+from ssm_utils import get_parameter_value
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -22,23 +23,6 @@ YOUTUBE_API_KEY_PARAMETER_NAME = os.environ["YOUTUBE_API_KEY_PARAMETER_NAME"]
 
 dynamodb_client = boto3.client("dynamodb")
 sns_client = boto3.client("sns")
-ssm_client = boto3.client("ssm")
-
-
-def get_parameter_value(parameter_name: str) -> str:
-    """
-    AWS Systems Manager Parameter Store からパラメータ値を取得する
-
-    Args:
-        parameter_name (str): パラメータ名
-
-    Returns:
-        str: パラメータ値
-    """
-    response: Dict[str, Dict[str, str]] = ssm_client.get_parameter(
-        Name=parameter_name, WithDecryption=True
-    )
-    return response["Parameter"]["Value"]
 
 
 def verify_hmac_signature(event: Dict[str, Any]) -> str | None:

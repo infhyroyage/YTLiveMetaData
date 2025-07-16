@@ -65,6 +65,7 @@ AWS 以外の外部サービスとも連携することにより、コア機能�
 | `ytlivemetadata-lambda-get-notify`  | AWS Lambda         | WebSub サブスクリプション確認処理を行う Lambda 関数                                  |
 | `ytlivemetadata-lambda-post-notify` | AWS Lambda         | WebSub での YouTube ライブ配信通知情報をもとに SMS で通知する Lambda 関数            |
 | `ytlivemetadata-lambda-websub`      | AWS Lambda         | Google PubSubHubbub Hub のサブスクリプションを再登録する Lambda 関数                 |
+| `ytlivemetadata-layer-common-utils` | AWS Lambda         | 共通ライブラリ関数（SSM Parameter Store 操作）を提供する Lambda レイヤー             |
 | `ytlivemetadata-pipeline`           | AWS CodePipeline   | `ytlivemetadata-build`・`ytlivemetadata-stack-pipeline`を管理する CI/CD パイプライン |
 | (ユーザー指定)                      | Amazon S3          | CI/CD パイプラインのビルドアーティファクトを保存するバケット                         |
 | `ytlivemetadata-stack-pipeline`     | AWS CloudFormation | CI/CD パイプラインの AWS リソースを管理するスタック                                  |
@@ -190,6 +191,7 @@ GitHub Dependabot は以下の実行方式に従い、`.github/dependabot.yaml`�
     - Amazon EventBridge
     - Amazon SNS
     - AWS Lambda
+    - AWS Lambda レイヤー（共通ライブラリ）
     - AWS Systems Manager Parameter Store
       - API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`エンドポイント
     - 上記 AWS リソースに必要な IAM ロール・IAM ポリシー
@@ -209,3 +211,4 @@ GitHub Dependabot は以下の実行方式に従い、`.github/dependabot.yaml`�
   ```bash
   pylint lambdas/**/*.py tests/**/*.py
   ```
+- AWS Lambda 関数間で重複するコードは AWS Lambda レイヤーを使用して共通化し、コードの保守性とデプロイサイズの最適化を図る。共通ライブラリは`layers/common_utils/python/`に配置し、各 Lambda 関数からインポートして使用する。

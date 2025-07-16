@@ -14,6 +14,17 @@ Globals:
         LOG_LEVEL: INFO
 
 Resources:
+  # Lambda Layer for Common Utilities
+  CommonUtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ytlivemetadata-layer-common-utils
+      Description: Common utility functions for YouTube Live Metadata Notification
+      ContentUri: ../layers/common_utils/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Delete
+
   # CloudWatch Logs for API Gateway Access Logs
   ApiGatewayAccessLogs:
     Type: AWS::Logs::LogGroup
@@ -111,6 +122,8 @@ Resources:
       CodeUri: ../lambdas/get_notify/
       Handler: app.lambda_handler
       Description: Handle WebSub Subscription Verification for YouTube Live Stream Notifications
+      Layers:
+        - !Ref CommonUtilsLayer
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -144,6 +157,8 @@ Resources:
       CodeUri: ../lambdas/post_notify/
       Handler: app.lambda_handler
       Description: Process YouTube Live Stream Notifications and Send SMS
+      Layers:
+        - !Ref CommonUtilsLayer
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -190,6 +205,8 @@ Resources:
       CodeUri: ../lambdas/websub/
       Handler: app.lambda_handler
       Description: Renew Google PubSubHubbub Subscription
+      Layers:
+        - !Ref CommonUtilsLayer
       Environment:
         Variables:
           PUBSUBHUBBUB_HUB_URL: "https://pubsubhubbub.appspot.com/"

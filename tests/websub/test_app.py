@@ -269,7 +269,7 @@ class TestLambdaHandler:
             with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
                     with patch(
-                        "lambdas.websub.app.get_parameter_value"
+                        "ssm_utils.get_parameter_value"
                     ) as mock_get_parameter:
                         # Parameter Store からの値の取得をモック
                         mock_get_parameter.side_effect = [
@@ -303,7 +303,7 @@ class TestLambdaHandler:
         """get_parameter_valueで例外が発生した場合のLambda関数ハンドラーテスト"""
         from lambdas.websub.app import lambda_handler
 
-        with patch("lambdas.websub.app.get_parameter_value") as mock_get_parameter:
+        with patch("ssm_utils.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.side_effect = Exception("Parameter not found")
 
             event = {}
@@ -320,7 +320,7 @@ class TestLambdaHandler:
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub"):
             with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch(
-                    "lambdas.websub.app.get_parameter_value"
+                    "ssm_utils.get_parameter_value"
                 ) as mock_get_parameter:
                     mock_get_parameter.side_effect = [
                         "test_channel_id",
@@ -342,7 +342,7 @@ class TestLambdaHandler:
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub") as mock_subscribe:
             with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch(
-                    "lambdas.websub.app.get_parameter_value"
+                    "ssm_utils.get_parameter_value"
                 ) as mock_get_parameter:
                     mock_get_parameter.side_effect = [
                         "test_channel_id",
@@ -366,7 +366,7 @@ class TestLambdaHandler:
             with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
                     with patch(
-                        "lambdas.websub.app.get_parameter_value"
+                        "ssm_utils.get_parameter_value"
                     ) as mock_get_parameter:
                         mock_get_parameter.side_effect = [
                             "test_channel_id",
@@ -394,7 +394,7 @@ class TestLambdaHandler:
             with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch("lambdas.websub.app.ssm_client"):
                     with patch(
-                        "lambdas.websub.app.get_parameter_value"
+                        "ssm_utils.get_parameter_value"
                     ) as mock_get_parameter:
                         mock_get_parameter.side_effect = [
                             "test_channel_id",

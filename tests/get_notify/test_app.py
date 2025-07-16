@@ -47,7 +47,7 @@ class TestVerifyQueryParams:
         """クエリパラメータ検証の成功テスト"""
         from lambdas.get_notify.app import vetify_query_params
 
-        with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
+        with patch("ssm_utils.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.side_effect = ["test_secret", "test_channel_id"]
 
             query_params = {
@@ -88,7 +88,7 @@ class TestVerifyQueryParams:
         """無効なhub.secretパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
-        with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
+        with patch("ssm_utils.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.return_value = "expected_secret"
 
             query_params = {
@@ -105,7 +105,7 @@ class TestVerifyQueryParams:
         """無効なhub.topicパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
-        with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
+        with patch("ssm_utils.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.side_effect = ["test_secret", "expected_channel_id"]
 
             query_params = {
@@ -125,7 +125,7 @@ class TestVerifyQueryParams:
         """無効なhub.lease_secondsパラメータのテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
-        with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
+        with patch("ssm_utils.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.side_effect = ["test_secret", "test_channel_id"]
 
             query_params = {
@@ -146,7 +146,7 @@ class TestVerifyQueryParams:
         """誤ったhub.lease_seconds数値のテスト"""
         from lambdas.get_notify.app import vetify_query_params
 
-        with patch("lambdas.get_notify.app.get_parameter_value") as mock_get_parameter:
+        with patch("ssm_utils.get_parameter_value") as mock_get_parameter:
             mock_get_parameter.side_effect = ["test_secret", "test_channel_id"]
 
             query_params = {
