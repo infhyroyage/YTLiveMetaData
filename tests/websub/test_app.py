@@ -51,38 +51,6 @@ class TestGetParameterValue:
         "WEBSUB_CALLBACK_URL_PARAMETER_NAME": "test-callback-url-param",
     },
 )
-class TestGenerateHmacSecret:
-    """generate_hmac_secret関数のテスト"""
-
-    def test_generate_hmac_secret_success(self):
-        """HMACシークレット生成の成功テスト"""
-        from lambdas.websub.app import generate_hmac_secret
-
-        with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
-            with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
-                mock_token_hex.return_value = "test_secret_hex"
-
-                result = generate_hmac_secret()
-
-                assert result == "test_secret_hex"
-                mock_ssm_client.put_parameter.assert_called_once()
-                call_args = mock_ssm_client.put_parameter.call_args
-                assert call_args[1]["Value"] == "test_secret_hex"
-                assert call_args[1]["Type"] == "SecureString"
-                assert call_args[1]["Overwrite"] is True
-
-
-@patch.dict(
-    os.environ,
-    {
-        "PUBSUBHUBBUB_HUB_URL": "https://pubsubhubbub.appspot.com/",
-        "LEASE_SECONDS": "828000",
-        "HMAC_SECRET_LENGTH": "32",
-        "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
-        "YOUTUBE_CHANNEL_ID_PARAMETER_NAME": "test-channel-id-param",
-        "WEBSUB_CALLBACK_URL_PARAMETER_NAME": "test-callback-url-param",
-    },
-)
 class TestSubscribeToPubsubhubbub:
     """subscribe_to_pubsubhubbub関数のテスト"""
 
@@ -298,29 +266,38 @@ class TestLambdaHandler:
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub") as mock_subscribe:
-            with patch(
-                "lambdas.websub.app.generate_hmac_secret"
-            ) as mock_generate_secret:
-                with patch(
-                    "lambdas.websub.app.get_parameter_value"
-                ) as mock_get_parameter:
-                    mock_get_parameter.side_effect = [
-                        "test_channel_id",
-                        "https://example.com/callback",
-                    ]
-                    mock_generate_secret.return_value = "test_secret"
+            with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
+                with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
+                    with patch(
+                        "lambdas.websub.app.get_parameter_value"
+                    ) as mock_get_parameter:
+                        # Parameter Store からの値の取得をモック
+                        mock_get_parameter.side_effect = [
+                            "test_channel_id",
+                            "https://example.com/callback",
+                        ]
+                        # HMACシークレット生成をモック
+                        mock_token_hex.return_value = "test_secret_hex"
 
-                    event = {}
+                        event = {}
 
-                    result = lambda_handler(event, None)
+                        result = lambda_handler(event, None)
 
-                    assert result["statusCode"] == 200
-                    assert result["body"] == "OK"
-                    mock_subscribe.assert_called_once_with(
-                        channel_id="test_channel_id",
-                        callback_url="https://example.com/callback",
-                        hmac_secret="test_secret",
-                    )
+                        assert result["statusCode"] == 200
+                        assert result["body"] == "OK"
+                        # subscribe_to_pubsubhubbub が正しい引数で呼び出されることを検証
+                        mock_subscribe.assert_called_once_with(
+                            channel_id="test_channel_id",
+                            callback_url="https://example.com/callback",
+                            hmac_secret="test_secret_hex",
+                        )
+                        # HMACシークレットがParameter Storeに保存されることを検証
+                        mock_ssm_client.put_parameter.assert_called_once_with(
+                            Name="test-hmac-secret-param",
+                            Value="test_secret_hex",
+                            Type="SecureString",
+                            Overwrite=True,
+                        )
 
     def test_lambda_handler_get_parameter_exception(self):
         """get_parameter_valueで例外が発生した場合のLambda関数ハンドラーテスト"""
@@ -336,14 +313,12 @@ class TestLambdaHandler:
             assert result["statusCode"] == 500
             assert result["body"] == "Internal server error"
 
-    def test_lambda_handler_generate_secret_exception(self):
-        """generate_hmac_secretで例外が発生した場合のLambda関数ハンドラーテスト"""
+    def test_lambda_handler_token_hex_exception(self):
+        """secrets.token_hexで例外が発生した場合のLambda関数ハンドラーテスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub"):
-            with patch(
-                "lambdas.websub.app.generate_hmac_secret"
-            ) as mock_generate_secret:
+            with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch(
                     "lambdas.websub.app.get_parameter_value"
                 ) as mock_get_parameter:
@@ -351,9 +326,7 @@ class TestLambdaHandler:
                         "test_channel_id",
                         "https://example.com/callback",
                     ]
-                    mock_generate_secret.side_effect = Exception(
-                        "Secret generation failed"
-                    )
+                    mock_token_hex.side_effect = Exception("Secret generation failed")
 
                     event = {}
 
@@ -367,9 +340,7 @@ class TestLambdaHandler:
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub") as mock_subscribe:
-            with patch(
-                "lambdas.websub.app.generate_hmac_secret"
-            ) as mock_generate_secret:
+            with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
                 with patch(
                     "lambdas.websub.app.get_parameter_value"
                 ) as mock_get_parameter:
@@ -377,7 +348,7 @@ class TestLambdaHandler:
                         "test_channel_id",
                         "https://example.com/callback",
                     ]
-                    mock_generate_secret.return_value = "test_secret"
+                    mock_token_hex.return_value = "test_secret_hex"
                     mock_subscribe.side_effect = Exception("Subscription failed")
 
                     event = {}
@@ -387,29 +358,60 @@ class TestLambdaHandler:
                     assert result["statusCode"] == 500
                     assert result["body"] == "Internal server error"
 
+    def test_lambda_handler_ssm_put_parameter_exception(self):
+        """ssm_client.put_parameterで例外が発生した場合のLambda関数ハンドラーテスト"""
+        from lambdas.websub.app import lambda_handler
+
+        with patch("lambdas.websub.app.subscribe_to_pubsubhubbub") as mock_subscribe:
+            with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
+                with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
+                    with patch(
+                        "lambdas.websub.app.get_parameter_value"
+                    ) as mock_get_parameter:
+                        mock_get_parameter.side_effect = [
+                            "test_channel_id",
+                            "https://example.com/callback",
+                        ]
+                        mock_token_hex.return_value = "test_secret_hex"
+                        mock_ssm_client.put_parameter.side_effect = Exception(
+                            "SSM parameter store error"
+                        )
+
+                        event = {}
+
+                        result = lambda_handler(event, None)
+
+                        assert result["statusCode"] == 500
+                        assert result["body"] == "Internal server error"
+                        # subscribe_to_pubsubhubbub は成功している必要がある
+                        mock_subscribe.assert_called_once()
+
     def test_lambda_handler_parameter_order(self):
         """Lambda関数ハンドラーでのパラメータ取得順序テスト"""
         from lambdas.websub.app import lambda_handler
 
         with patch("lambdas.websub.app.subscribe_to_pubsubhubbub"):
-            with patch(
-                "lambdas.websub.app.generate_hmac_secret"
-            ) as mock_generate_secret:
-                with patch(
-                    "lambdas.websub.app.get_parameter_value"
-                ) as mock_get_parameter:
-                    mock_get_parameter.side_effect = [
-                        "test_channel_id",
-                        "https://example.com/callback",
-                    ]
-                    mock_generate_secret.return_value = "test_secret"
+            with patch("lambdas.websub.app.secrets.token_hex") as mock_token_hex:
+                with patch("lambdas.websub.app.ssm_client"):
+                    with patch(
+                        "lambdas.websub.app.get_parameter_value"
+                    ) as mock_get_parameter:
+                        mock_get_parameter.side_effect = [
+                            "test_channel_id",
+                            "https://example.com/callback",
+                        ]
+                        mock_token_hex.return_value = "test_secret_hex"
 
-                    event = {}
+                        event = {}
 
-                    lambda_handler(event, None)
+                        lambda_handler(event, None)
 
-                    # パラメータが正しい順序で取得されることを検証
-                    actual_calls = [
-                        call[0] for call in mock_get_parameter.call_args_list
-                    ]
-                    assert len(actual_calls) == 2  # 2回呼び出される必要がある
+                        # パラメータが正しい順序で取得されることを検証
+                        expected_calls = [
+                            ("test-channel-id-param",),
+                            ("test-callback-url-param",),
+                        ]
+                        actual_calls = [
+                            call[0] for call in mock_get_parameter.call_args_list
+                        ]
+                        assert actual_calls == expected_calls

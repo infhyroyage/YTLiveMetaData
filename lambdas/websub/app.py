@@ -44,24 +44,6 @@ def get_parameter_value(parameter_name: str) -> str:
     return response["Parameter"]["Value"]
 
 
-def generate_hmac_secret() -> str:
-    """
-    新しいHMACシークレットを生成し、Parameter Storeに保存する
-
-    Returns:
-        str: HMACシークレット
-    """
-    hmac_secret = secrets.token_hex(HMAC_SECRET_LENGTH)
-    ssm_client.put_parameter(
-        Name=WEBSUB_HMAC_SECRET_PARAMETER_NAME,
-        Value=hmac_secret,
-        Type="SecureString",
-        Overwrite=True,
-    )
-
-    return hmac_secret
-
-
 def subscribe_to_pubsubhubbub(
     channel_id: str,
     callback_url: str,
@@ -159,18 +141,26 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         dict: レスポンス
     """
     try:
-        # Parameter Store からチャンネルID・コールバックURLを取得
+        # Parameter StoreからチャンネルID・コールバックURLを取得
         channel_id: str = get_parameter_value(YOUTUBE_CHANNEL_ID_PARAMETER_NAME)
         callback_url: str = get_parameter_value(WEBSUB_CALLBACK_URL_PARAMETER_NAME)
 
-        # 新しいHMACシークレットを生成してParameter Storeに保存
-        hmac_secret: str = generate_hmac_secret()
+        # 新しいHMACシークレットを生成
+        hmac_secret: str = secrets.token_hex(HMAC_SECRET_LENGTH)
 
-        # Google PubSubHubbub Hub にサブスクリプションを登録
+        # Google PubSubHubbub Hubにサブスクリプションを登録
         subscribe_to_pubsubhubbub(
             channel_id=channel_id,
             callback_url=callback_url,
             hmac_secret=hmac_secret,
+        )
+
+        # 生成したHMACシークレットをParameter Storeに保存
+        ssm_client.put_parameter(
+            Name=WEBSUB_HMAC_SECRET_PARAMETER_NAME,
+            Value=hmac_secret,
+            Type="SecureString",
+            Overwrite=True,
         )
 
         return {
