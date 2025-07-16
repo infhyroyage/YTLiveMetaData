@@ -211,4 +211,4 @@ GitHub Dependabot は以下の実行方式に従い、`.github/dependabot.yaml`�
   ```bash
   pylint lambdas/**/*.py tests/**/*.py
   ```
-- AWS Lambda 関数間で重複するコードは AWS Lambda レイヤーを使用して共通化し、コードの保守性とデプロイサイズの最適化を図る。共通ライブラリは`layers/common_utils/python/`に配置し、各 Lambda 関数からインポートして使用する。
+- AWS Lambda 関数間で重複するコードは AWS Lambda レイヤーを使用して共通化し、コードの保守性とデプロイサイズの最適化を図る。共通ライブラリは`lambdas/layer/python/`に配置し、各 Lambda 関数からインポートして使用する。

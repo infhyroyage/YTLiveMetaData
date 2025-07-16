@@ -20,7 +20,7 @@ Resources:
     Properties:
       LayerName: ytlivemetadata-layer-common-utils
       Description: Common utility functions for YouTube Live Metadata Notification
-      ContentUri: ../layers/common_utils/
+      ContentUri: ../lambdas/layer/
       CompatibleRuntimes:
         - python3.12
       RetentionPolicy: Delete
