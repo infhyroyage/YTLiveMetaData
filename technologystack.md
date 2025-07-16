@@ -66,7 +66,6 @@ AWS 以外の外部サービスとも連携することにより、コア機能�
 | `ytlivemetadata-lambda-post-notify` | AWS Lambda         | WebSub での YouTube ライブ配信通知情報をもとに SMS で通知する Lambda 関数            |
 | `ytlivemetadata-lambda-websub`      | AWS Lambda         | Google PubSubHubbub Hub のサブスクリプションを再登録する Lambda 関数                 |
 | `ytlivemetadata-pipeline`           | AWS CodePipeline   | `ytlivemetadata-build`・`ytlivemetadata-stack-pipeline`を管理する CI/CD パイプライン |
-| `ytlivemetadata-sns`                | Amazon SNS         | SMS 通知を送信するための SNS トピック                                                |
 | (ユーザー指定)                      | Amazon S3          | CI/CD パイプラインのビルドアーティファクトを保存するバケット                         |
 | `ytlivemetadata-stack-pipeline`     | AWS CloudFormation | CI/CD パイプラインの AWS リソースを管理するスタック                                  |
 | `ytlivemetadata-stack-sam`          | AWS CloudFormation | サーバーレスアプリケーションの AWS リソースを管理するスタック                        |

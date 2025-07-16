@@ -107,7 +107,21 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
 
 ## 削除手順
 
-1. SNS SMS サンドボックスから検証済み電話番号を削除する:
+1. SNS の SMS 配信ログの設定を無効化する:
+
+   ```bash
+   aws sns set-sms-attributes \
+     --attributes \
+       'DeliveryStatusLogging=false'
+   ```
+
+2. SAM テンプレートでデプロイしたスタックを削除する:
+
+   ```bash
+   aws cloudformation delete-stack --stack-name ytlivemetadata-stack-sam
+   ```
+
+3. SNS SMS サンドボックスから検証済み電話番号を削除する:
 
    1. [Amazon SNS コンソール](https://console.aws.amazon.com/sns/home)にログインする
    2. リージョンが ap-northeast-1 (東京) に設定されていることを確認する
@@ -117,20 +131,6 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
 
    > [!NOTE]  
    > 検証済み電話番号は、検証から 24 時間経過後に削除可能になる。
-
-2. SNS の SMS 配信ログの設定を無効化する:
-
-   ```bash
-   aws sns set-sms-attributes \
-     --attributes \
-       'DeliveryStatusLogging=false'
-   ```
-
-3. SAM テンプレートでデプロイしたスタックを削除する:
-
-   ```bash
-   aws cloudformation delete-stack --stack-name ytlivemetadata-stack-sam
-   ```
 
 4. Amazon S3 バケット内のすべてのオブジェクトを削除する:
 

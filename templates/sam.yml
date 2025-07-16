@@ -14,6 +14,41 @@ Globals:
         LOG_LEVEL: INFO
 
 Resources:
+  # CloudWatch Logs for API Gateway Access Logs
+  ApiGatewayAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/apigateway/ytlivemetadata-apig
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Handle WebSub Subscription Verification
+  GetNotifyLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-get-notify
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Process WebSub Notifications and Send SMS
+  PostNotifyLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-post-notify
+      RetentionInDays: 90
+
+  # CloudWatch Logs for Lambda Function to Renew Google PubSubHubbub Subscription
+  WebSubLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
+      RetentionInDays: 90
+
+  # CloudWatch Logs for SNS SMS Delivery
+  SnsSmsDeliveryLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/sns/ytlivemetadata-sns/sms/delivery
+      RetentionInDays: 90
+
   # IAM Role for API Gateway CloudWatch Logs
   ApiGatewayCloudWatchLogsRole:
     Type: AWS::IAM::Role
@@ -53,41 +88,6 @@ Resources:
                   - "logs:PutLogEvents"
                 Resource: !GetAtt SnsSmsDeliveryLogs.Arn
 
-  # CloudWatch Logs for API Gateway Access Logs
-  ApiGatewayAccessLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/apigateway/ytlivemetadata-apig
-      RetentionInDays: 90
-
-  # CloudWatch Logs for Lambda Function to Handle WebSub Subscription Verification
-  GetNotifyLambdaFunctionLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/ytlivemetadata-lambda-get-notify
-      RetentionInDays: 90
-
-  # CloudWatch Logs for Lambda Function to Process WebSub Notifications and Send SMS
-  PostNotifyLambdaFunctionLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/ytlivemetadata-lambda-post-notify
-      RetentionInDays: 90
-
-  # CloudWatch Logs for Lambda Function to Renew Google PubSubHubbub Subscription
-  WebSubLambdaFunctionLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
-      RetentionInDays: 90
-
-  # CloudWatch Logs for SNS SMS Delivery
-  SnsSmsDeliveryLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/sns/ytlivemetadata-sns/sms/delivery
-      RetentionInDays: 90
-
   # DynamoDB Table
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -107,13 +107,6 @@ Resources:
         SSEEnabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-
-  # SNS Topic for SMS Notifications
-  SnsTopicForSms:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: ytlivemetadata-sns
-      DisplayName: YouTube Live Metadata Notifications
 
   # Lambda Function for WebSub Subscription Verification
   GetNotifyLambdaFunction:
@@ -182,7 +175,6 @@ Resources:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTable
           SMS_PHONE_NUMBER_PARAMETER_NAME: "/ytlivemetadata/phone_number"
-          SNS_TOPIC_ARN: !Ref SnsTopicForSms
           WEBSUB_HMAC_SECRET_PARAMETER_NAME: "/ytlivemetadata/websub_hmac_secret"
           YOUTUBE_API_KEY_PARAMETER_NAME: "/ytlivemetadata/youtube_api_key"
       Events:

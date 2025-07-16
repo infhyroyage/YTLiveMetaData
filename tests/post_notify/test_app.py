@@ -15,7 +15,6 @@ import pytest
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -45,7 +44,6 @@ class TestGetParameterValue:
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -53,30 +51,8 @@ class TestGetParameterValue:
 class TestVerifyHmacSignature:
     """verify_hmac_signature関数のテスト"""
 
-    def test_verify_hmac_signature_success(self):
-        """HMAC署名検証の成功テスト"""
-        from lambdas.post_notify.app import verify_hmac_signature
-
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
-            mock_get_parameter.return_value = "secret_key"
-
-            # 期待される署名を計算
-            body = "test_body"
-            expected_signature = hmac.new(
-                "secret_key".encode("utf-8"), body.encode("utf-8"), hashlib.sha1
-            ).hexdigest()
-
-            event = {
-                "headers": {"X-Hub-Signature": f"sha1={expected_signature}"},
-                "body": body,
-            }
-
-            result = verify_hmac_signature(event)
-
-            assert result is None
-
     def test_verify_hmac_signature_missing_header(self):
-        """X-Hub-Signatureヘッダー不足のテスト"""
+        """X-Hub-Signatureヘッダーが欠如している場合のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
         event = {"headers": {}, "body": "test_body"}
@@ -86,30 +62,27 @@ class TestVerifyHmacSignature:
         assert result == "Missing X-Hub-Signature header"
 
     def test_verify_hmac_signature_unsupported_method(self):
-        """サポートされていない署名方式のテスト"""
+        """サポートされていない署名メソッドの場合のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
-            mock_get_parameter.return_value = "secret_key"
+        event = {
+            "headers": {"X-Hub-Signature": "md5=test_signature"},
+            "body": "test_body",
+        }
 
-            event = {
-                "headers": {"X-Hub-Signature": "md5=invalidhash"},
-                "body": "test_body",
-            }
+        result = verify_hmac_signature(event)
 
-            result = verify_hmac_signature(event)
-
-            assert result == "Unsupported signature method: md5"
+        assert result == "Unsupported signature method: md5"
 
     def test_verify_hmac_signature_verification_failed(self):
-        """HMAC署名検証失敗のテスト"""
+        """HMAC署名検証が失敗した場合のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
-            mock_get_parameter.return_value = "secret_key"
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_secret"
 
             event = {
-                "headers": {"X-Hub-Signature": "sha1=invalidhash"},
+                "headers": {"X-Hub-Signature": "sha1=invalid_signature"},
                 "body": "test_body",
             }
 
@@ -117,21 +90,44 @@ class TestVerifyHmacSignature:
 
             assert result == "HMAC signature verification failed"
 
-    def test_verify_hmac_signature_case_insensitive_headers(self):
-        """大文字小文字を区別しないヘッダー処理のテスト"""
+    def test_verify_hmac_signature_success(self):
+        """HMAC署名検証が成功した場合のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
-        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_parameter:
-            mock_get_parameter.return_value = "secret_key"
+        test_secret = "test_secret"
+        test_body = "test_body"
+        expected_signature = hmac.new(
+            test_secret.encode("utf-8"), test_body.encode("utf-8"), hashlib.sha1
+        ).hexdigest()
 
-            body = "test_body"
-            expected_signature = hmac.new(
-                "secret_key".encode("utf-8"), body.encode("utf-8"), hashlib.sha1
-            ).hexdigest()
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = test_secret
 
             event = {
-                "headers": {"x-hub-signature": f"sha1={expected_signature}"},  # 小文字
-                "body": body,
+                "headers": {"X-Hub-Signature": f"sha1={expected_signature}"},
+                "body": test_body,
+            }
+
+            result = verify_hmac_signature(event)
+
+            assert result is None
+
+    def test_verify_hmac_signature_case_insensitive_header(self):
+        """ヘッダー名が大文字小文字を区別しない場合のテスト"""
+        from lambdas.post_notify.app import verify_hmac_signature
+
+        test_secret = "test_secret"
+        test_body = "test_body"
+        expected_signature = hmac.new(
+            test_secret.encode("utf-8"), test_body.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = test_secret
+
+            event = {
+                "headers": {"x-hub-signature": f"sha256={expected_signature}"},
+                "body": test_body,
             }
 
             result = verify_hmac_signature(event)
@@ -144,7 +140,6 @@ class TestVerifyHmacSignature:
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -153,11 +148,12 @@ class TestParseWebsubXml:
     """parse_websub_xml関数のテスト"""
 
     def test_parse_websub_xml_success(self):
-        """XML解析の成功テスト"""
+        """XMLの解析が成功した場合のテスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+        <feed xmlns="http://www.w3.org/2005/Atom"
+              xmlns:yt="http://www.youtube.com/xml/schemas/2015">
             <entry>
                 <yt:videoId>test_video_id</yt:videoId>
                 <title>Test Video Title</title>
@@ -166,27 +162,32 @@ class TestParseWebsubXml:
 
         result = parse_websub_xml(xml_content)
 
-        assert result["video_id"] == "test_video_id"
-        assert result["title"] == "Test Video Title"
-        assert result["url"] == "https://www.youtube.com/watch?v=test_video_id"
+        expected = {
+            "video_id": "test_video_id",
+            "title": "Test Video Title",
+            "url": "https://www.youtube.com/watch?v=test_video_id",
+        }
+        assert result == expected
 
     def test_parse_websub_xml_no_entry(self):
-        """エントリなしのXML解析テスト"""
+        """XMLにentryが存在しない場合のテスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+        <feed xmlns="http://www.w3.org/2005/Atom"
+              xmlns:yt="http://www.youtube.com/xml/schemas/2015">
         </feed>"""
 
         with pytest.raises(ValueError, match="No entry found in XML"):
             parse_websub_xml(xml_content)
 
     def test_parse_websub_xml_no_video_id(self):
-        """ビデオIDなしのXML解析テスト"""
+        """XMLにvideoIdが存在しない場合のテスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+        <feed xmlns="http://www.w3.org/2005/Atom"
+              xmlns:yt="http://www.youtube.com/xml/schemas/2015">
             <entry>
                 <title>Test Video Title</title>
             </entry>
@@ -196,11 +197,12 @@ class TestParseWebsubXml:
             parse_websub_xml(xml_content)
 
     def test_parse_websub_xml_no_title(self):
-        """タイトルなしのXML解析テスト"""
+        """XMLにtitleが存在しない場合のテスト"""
         from lambdas.post_notify.app import parse_websub_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+        <feed xmlns="http://www.w3.org/2005/Atom"
+              xmlns:yt="http://www.youtube.com/xml/schemas/2015">
             <entry>
                 <yt:videoId>test_video_id</yt:videoId>
             </entry>
@@ -215,7 +217,6 @@ class TestParseWebsubXml:
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -223,126 +224,118 @@ class TestParseWebsubXml:
 class TestCheckIfLiveStreaming:
     """check_if_live_streaming関数のテスト"""
 
-    def test_check_if_live_streaming_live(self):
-        """ライブ配信中のチェックテスト"""
+    def test_check_if_live_streaming_live_stream_with_thumbnail(self):
+        """ライブ配信中でサムネイルがある場合のテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
-        with patch("lambdas.post_notify.app.requests.get") as mock_requests:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "test_api_key"
-                mock_response = Mock()
-                mock_response.json.return_value = {
-                    "items": [
-                        {
-                            "snippet": {
-                                "liveBroadcastContent": "live",
-                                "thumbnails": {
-                                    "high": {"url": "https://example.com/high.jpg"},
-                                    "medium": {"url": "https://example.com/medium.jpg"},
-                                    "default": {
-                                        "url": "https://example.com/default.jpg"
-                                    },
-                                },
-                            }
-                        }
-                    ]
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "items": [
+                {
+                    "snippet": {
+                        "liveBroadcastContent": "live",
+                        "thumbnails": {
+                            "high": {"url": "https://example.com/high.jpg"},
+                            "medium": {"url": "https://example.com/medium.jpg"},
+                            "default": {"url": "https://example.com/default.jpg"},
+                        },
+                    }
                 }
-                mock_response.raise_for_status.return_value = None
-                mock_requests.return_value = mock_response
+            ]
+        }
+        mock_response.raise_for_status.return_value = None
+
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_api_key"
+            with patch("lambdas.post_notify.app.requests.get") as mock_get:
+                mock_get.return_value = mock_response
 
                 result = check_if_live_streaming("test_video_id")
 
                 assert result == "https://example.com/high.jpg"
 
-    def test_check_if_live_streaming_not_live(self):
-        """ライブ配信中ではない場合のチェックテスト"""
+    def test_check_if_live_streaming_live_stream_without_thumbnail(self):
+        """ライブ配信中でサムネイルがない場合のテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
-        with patch("lambdas.post_notify.app.requests.get") as mock_requests:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "test_api_key"
-                mock_response = Mock()
-                mock_response.json.return_value = {
-                    "items": [{"snippet": {"liveBroadcastContent": "none"}}]
-                }
-                mock_response.raise_for_status.return_value = None
-                mock_requests.return_value = mock_response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "items": [{"snippet": {"liveBroadcastContent": "live"}}]
+        }
+        mock_response.raise_for_status.return_value = None
 
-                result = check_if_live_streaming("test_video_id")
-
-                assert result is None
-
-    def test_check_if_live_streaming_no_thumbnails(self):
-        """サムネイルが利用できない場合のライブ配信チェックテスト"""
-        from lambdas.post_notify.app import check_if_live_streaming
-
-        with patch("lambdas.post_notify.app.requests.get") as mock_requests:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "test_api_key"
-                mock_response = Mock()
-                mock_response.json.return_value = {
-                    "items": [{"snippet": {"liveBroadcastContent": "live"}}]
-                }
-                mock_response.raise_for_status.return_value = None
-                mock_requests.return_value = mock_response
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_api_key"
+            with patch("lambdas.post_notify.app.requests.get") as mock_get:
+                mock_get.return_value = mock_response
 
                 result = check_if_live_streaming("test_video_id")
 
                 assert result == ""
 
-    def test_check_if_live_streaming_no_items(self):
-        """アイテムが返されない場合のライブ配信チェックテスト"""
+    def test_check_if_live_streaming_not_live(self):
+        """ライブ配信中でない場合のテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
-        with patch("lambdas.post_notify.app.requests.get") as mock_requests:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "test_api_key"
-                mock_response = Mock()
-                mock_response.json.return_value = {}
-                mock_response.raise_for_status.return_value = None
-                mock_requests.return_value = mock_response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "items": [{"snippet": {"liveBroadcastContent": "none"}}]
+        }
+        mock_response.raise_for_status.return_value = None
+
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_api_key"
+            with patch("lambdas.post_notify.app.requests.get") as mock_get:
+                mock_get.return_value = mock_response
+
+                result = check_if_live_streaming("test_video_id")
+
+                assert result is None
+
+    def test_check_if_live_streaming_video_not_found(self):
+        """動画が見つからない場合のテスト"""
+        from lambdas.post_notify.app import check_if_live_streaming
+
+        mock_response = Mock()
+        mock_response.json.return_value = {"items": None}
+        mock_response.raise_for_status.return_value = None
+
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_api_key"
+            with patch("lambdas.post_notify.app.requests.get") as mock_get:
+                mock_get.return_value = mock_response
 
                 with pytest.raises(ValueError, match="Video not found"):
                     check_if_live_streaming("test_video_id")
 
-    def test_check_if_live_streaming_no_snippet(self):
-        """スニペットが返されない場合のライブ配信チェックテスト"""
+    def test_check_if_live_streaming_snippet_not_found(self):
+        """snippetが見つからない場合のテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
-        with patch("lambdas.post_notify.app.requests.get") as mock_requests:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "test_api_key"
-                mock_response = Mock()
-                mock_response.json.return_value = {"items": [{}]}
-                mock_response.raise_for_status.return_value = None
-                mock_requests.return_value = mock_response
+        mock_response = Mock()
+        mock_response.json.return_value = {"items": [{}]}
+        mock_response.raise_for_status.return_value = None
+
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_api_key"
+            with patch("lambdas.post_notify.app.requests.get") as mock_get:
+                mock_get.return_value = mock_response
 
                 with pytest.raises(ValueError, match="snippet not found"):
                     check_if_live_streaming("test_video_id")
 
-    def test_check_if_live_streaming_no_live_broadcast_content(self):
-        """liveBroadcastContentが返されない場合のライブ配信チェックテスト"""
+    def test_check_if_live_streaming_live_broadcast_content_not_found(self):
+        """liveBroadcastContentが見つからない場合のテスト"""
         from lambdas.post_notify.app import check_if_live_streaming
 
-        with patch("lambdas.post_notify.app.requests.get") as mock_requests:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "test_api_key"
-                mock_response = Mock()
-                mock_response.json.return_value = {"items": [{"snippet": {}}]}
-                mock_response.raise_for_status.return_value = None
-                mock_requests.return_value = mock_response
+        mock_response = Mock()
+        mock_response.json.return_value = {"items": [{"snippet": {}}]}
+        mock_response.raise_for_status.return_value = None
+
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_api_key"
+            with patch("lambdas.post_notify.app.requests.get") as mock_get:
+                mock_get.return_value = mock_response
 
                 with pytest.raises(ValueError, match="liveBroadcastContent not found"):
                     check_if_live_streaming("test_video_id")
@@ -353,7 +346,6 @@ class TestCheckIfLiveStreaming:
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -361,8 +353,24 @@ class TestCheckIfLiveStreaming:
 class TestCheckIfNotified:
     """check_if_notified関数のテスト"""
 
-    def test_check_if_notified_true(self):
-        """通知済みチェックでTrueが返される場合のテスト"""
+    def test_check_if_notified_not_notified(self):
+        """通知されていない場合のテスト"""
+        from lambdas.post_notify.app import check_if_notified
+
+        with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
+            mock_dynamodb_client.get_item.return_value = {}
+
+            result = check_if_notified("test_video_id")
+
+            assert result is False
+            mock_dynamodb_client.get_item.assert_called_once_with(
+                TableName="test-dynamodb-table",
+                Key={"video_id": {"S": "test_video_id"}},
+                ConsistentRead=True,
+            )
+
+    def test_check_if_notified_already_notified(self):
+        """すでに通知済みの場合のテスト"""
         from lambdas.post_notify.app import check_if_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -373,9 +381,14 @@ class TestCheckIfNotified:
             result = check_if_notified("test_video_id")
 
             assert result is True
+            mock_dynamodb_client.get_item.assert_called_once_with(
+                TableName="test-dynamodb-table",
+                Key={"video_id": {"S": "test_video_id"}},
+                ConsistentRead=True,
+            )
 
-    def test_check_if_notified_false(self):
-        """通知済みチェックでFalseが返される場合のテスト"""
+    def test_check_if_notified_is_notified_false(self):
+        """is_notifiedがFalseの場合のテスト"""
         from lambdas.post_notify.app import check_if_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
@@ -387,35 +400,12 @@ class TestCheckIfNotified:
 
             assert result is False
 
-    def test_check_if_notified_no_item(self):
-        """アイテムが存在しない場合の通知済みチェックテスト"""
-        from lambdas.post_notify.app import check_if_notified
-
-        with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
-            mock_dynamodb_client.get_item.return_value = {}
-
-            result = check_if_notified("test_video_id")
-
-            assert result is False
-
-    def test_check_if_notified_none_response(self):
-        """レスポンスがNoneの場合の通知済みチェックテスト"""
-        from lambdas.post_notify.app import check_if_notified
-
-        with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
-            mock_dynamodb_client.get_item.return_value = None
-
-            result = check_if_notified("test_video_id")
-
-            assert result is False
-
 
 @patch.dict(
     os.environ,
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -424,18 +414,20 @@ class TestRecordNotified:
     """record_notified関数のテスト"""
 
     def test_record_notified_success(self):
-        """通知記録の成功テスト"""
+        """記録が成功した場合のテスト"""
         from lambdas.post_notify.app import record_notified
 
         with patch("lambdas.post_notify.app.dynamodb_client") as mock_dynamodb_client:
-            with patch("time.time") as mock_time:
+            with patch("lambdas.post_notify.app.time.time") as mock_time:
                 mock_time.return_value = 1234567890
 
                 record_notified(
-                    "test_video_id", "Test Title", "test_url", "test_thumbnail"
+                    "test_video_id",
+                    "test_title",
+                    "https://example.com/video",
+                    "https://example.com/thumbnail.jpg",
                 )
 
-                # DynamoDB update_item が正しい引数で呼び出されることを検証
                 mock_dynamodb_client.update_item.assert_called_once_with(
                     TableName="test-dynamodb-table",
                     Key={"video_id": {"S": "test_video_id"}},
@@ -450,9 +442,9 @@ class TestRecordNotified:
                     ExpressionAttributeValues={
                         ":notified_timestamp": {"N": "1234567890"},
                         ":is_notified": {"BOOL": True},
-                        ":title": {"S": "Test Title"},
-                        ":url": {"S": "test_url"},
-                        ":thumbnail_url": {"S": "test_thumbnail"},
+                        ":title": {"S": "test_title"},
+                        ":url": {"S": "https://example.com/video"},
+                        ":thumbnail_url": {"S": "https://example.com/thumbnail.jpg"},
                     },
                 )
 
@@ -462,7 +454,6 @@ class TestRecordNotified:
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -471,32 +462,46 @@ class TestSendSmsNotification:
     """send_sms_notification関数のテスト"""
 
     def test_send_sms_notification_with_thumbnail(self):
-        """サムネイル付きSMS通知のテスト"""
+        """サムネイルありでSMS通知を送信した場合のテスト"""
         from lambdas.post_notify.app import send_sms_notification
 
-        with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "+1234567890"
-
-                send_sms_notification("Test Title", "test_url", "test_thumbnail")
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "+1234567890"
+            with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
+                send_sms_notification(
+                    "Test Title",
+                    "https://example.com/video",
+                    "https://example.com/thumbnail.jpg",
+                )
 
                 assert mock_sns_client.publish.call_count == 3
+                mock_sns_client.publish.assert_any_call(
+                    PhoneNumber="+1234567890", Message="Test Title"
+                )
+                mock_sns_client.publish.assert_any_call(
+                    PhoneNumber="+1234567890", Message="https://example.com/video"
+                )
+                mock_sns_client.publish.assert_any_call(
+                    PhoneNumber="+1234567890",
+                    Message="https://example.com/thumbnail.jpg",
+                )
 
     def test_send_sms_notification_without_thumbnail(self):
-        """サムネイルなしSMS通知のテスト"""
+        """サムネイルなしでSMS通知を送信した場合のテスト"""
         from lambdas.post_notify.app import send_sms_notification
 
-        with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
-            with patch(
-                "lambdas.post_notify.app.get_parameter_value"
-            ) as mock_get_parameter:
-                mock_get_parameter.return_value = "+1234567890"
-
-                send_sms_notification("Test Title", "test_url", "")
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "+1234567890"
+            with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
+                send_sms_notification("Test Title", "https://example.com/video", "")
 
                 assert mock_sns_client.publish.call_count == 2
+                mock_sns_client.publish.assert_any_call(
+                    PhoneNumber="+1234567890", Message="Test Title"
+                )
+                mock_sns_client.publish.assert_any_call(
+                    PhoneNumber="+1234567890", Message="https://example.com/video"
+                )
 
 
 @patch.dict(
@@ -504,7 +509,6 @@ class TestSendSmsNotification:
     {
         "DYNAMODB_TABLE": "test-dynamodb-table",
         "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "SNS_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test-topic",
         "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
@@ -521,109 +525,101 @@ class TestLambdaHandler:
                 with patch(
                     "lambdas.post_notify.app.check_if_notified"
                 ) as mock_check_notified:
+                    mock_check_notified.return_value = False
                     with patch(
                         "lambdas.post_notify.app.check_if_live_streaming"
                     ) as mock_check_live:
+                        mock_check_live.return_value = "https://example.com/thumb.jpg"
                         with patch(
                             "lambdas.post_notify.app.parse_websub_xml"
-                        ) as mock_parse:
+                        ) as mock_parse_xml:
+                            mock_parse_xml.return_value = {
+                                "video_id": "test_video_id",
+                                "title": "Test Title",
+                                "url": "https://example.com/video",
+                            }
                             with patch(
                                 "lambdas.post_notify.app.verify_hmac_signature"
                             ) as mock_verify:
                                 mock_verify.return_value = None
-                                mock_parse.return_value = {
-                                    "video_id": "test_video_id",
-                                    "title": "Test Title",
-                                    "url": "test_url",
-                                }
-                                mock_check_live.return_value = "test_thumbnail"
-                                mock_check_notified.return_value = False
 
-                                event = {"body": "test_xml_content"}
-
+                                event = {"body": "test_xml"}
                                 result = lambda_handler(event, None)
 
-                                assert result["statusCode"] == 200
-                                assert result["body"] == "OK"
+                                assert result == {"statusCode": 200, "body": "OK"}
 
     def test_lambda_handler_hmac_verification_failed(self):
-        """HMAC検証失敗時のLambda関数ハンドラーテスト"""
+        """HMAC検証が失敗した場合のテスト"""
         from lambdas.post_notify.app import lambda_handler
 
-        with patch("lambdas.post_notify.app.verify_hmac_signature") as mock_verify:
-            mock_verify.return_value = "HMAC verification failed"
+        with patch("lambdas.post_notify.app.verify_hmac_signature") as mock_verify_hmac:
+            mock_verify_hmac.return_value = "Verification failed"
 
-            event = {"body": "test_xml_content"}
-
+            event = {"body": "test_xml"}
             result = lambda_handler(event, None)
 
-            assert result["statusCode"] == 400
-            assert result["body"] == "HMAC verification failed"
+            assert result == {"statusCode": 400, "body": "Verification failed"}
 
     def test_lambda_handler_not_live_stream(self):
-        """ライブ配信ではない場合のLambda関数ハンドラーテスト"""
+        """ライブ配信でない場合のテスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch(
             "lambdas.post_notify.app.check_if_live_streaming"
         ) as mock_check_live:
-            with patch("lambdas.post_notify.app.parse_websub_xml") as mock_parse:
+            mock_check_live.return_value = None
+            with patch("lambdas.post_notify.app.parse_websub_xml") as mock_parse_xml:
+                mock_parse_xml.return_value = {
+                    "video_id": "test_video_id",
+                    "title": "Test Title",
+                    "url": "https://example.com/video",
+                }
                 with patch(
                     "lambdas.post_notify.app.verify_hmac_signature"
                 ) as mock_verify:
                     mock_verify.return_value = None
-                    mock_parse.return_value = {
-                        "video_id": "test_video_id",
-                        "title": "Test Title",
-                        "url": "test_url",
-                    }
-                    mock_check_live.return_value = None
 
-                    event = {"body": "test_xml_content"}
-
+                    event = {"body": "test_xml"}
                     result = lambda_handler(event, None)
 
-                    assert result["statusCode"] == 200
-                    assert result["body"] == "OK"
+                    assert result == {"statusCode": 200, "body": "OK"}
 
     def test_lambda_handler_already_notified(self):
-        """既に通知済みの場合のLambda関数ハンドラーテスト"""
+        """すでに通知済みの場合のテスト"""
         from lambdas.post_notify.app import lambda_handler
 
         with patch("lambdas.post_notify.app.check_if_notified") as mock_check_notified:
+            mock_check_notified.return_value = True
             with patch(
                 "lambdas.post_notify.app.check_if_live_streaming"
             ) as mock_check_live:
-                with patch("lambdas.post_notify.app.parse_websub_xml") as mock_parse:
+                mock_check_live.return_value = "https://example.com/thumb.jpg"
+                with patch(
+                    "lambdas.post_notify.app.parse_websub_xml"
+                ) as mock_parse_xml:
+                    mock_parse_xml.return_value = {
+                        "video_id": "test_video_id",
+                        "title": "Test Title",
+                        "url": "https://example.com/video",
+                    }
                     with patch(
                         "lambdas.post_notify.app.verify_hmac_signature"
                     ) as mock_verify:
                         mock_verify.return_value = None
-                        mock_parse.return_value = {
-                            "video_id": "test_video_id",
-                            "title": "Test Title",
-                            "url": "test_url",
-                        }
-                        mock_check_live.return_value = "test_thumbnail"
-                        mock_check_notified.return_value = True
 
-                        event = {"body": "test_xml_content"}
-
+                        event = {"body": "test_xml"}
                         result = lambda_handler(event, None)
 
-                        assert result["statusCode"] == 200
-                        assert result["body"] == "OK"
+                        assert result == {"statusCode": 200, "body": "OK"}
 
     def test_lambda_handler_exception(self):
-        """例外発生時のLambda関数ハンドラーテスト"""
+        """例外が発生した場合のテスト"""
         from lambdas.post_notify.app import lambda_handler
 
-        with patch("lambdas.post_notify.app.verify_hmac_signature") as mock_verify:
-            mock_verify.side_effect = Exception("Test exception")
+        with patch("lambdas.post_notify.app.verify_hmac_signature") as mock_verify_hmac:
+            mock_verify_hmac.side_effect = Exception("Test exception")
 
-            event = {"body": "test_xml_content"}
-
+            event = {"body": "test_xml"}
             result = lambda_handler(event, None)
 
-            assert result["statusCode"] == 500
-            assert result["body"] == "Internal Server Error"
+            assert result == {"statusCode": 500, "body": "Internal Server Error"}

@@ -245,9 +245,6 @@ Resources:
                 Action: "logs:*"
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
               - Effect: Allow
-                Action: "sns:*"
-                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ytlivemetadata-sns"
-              - Effect: Allow
                 Action: "ssm:*"
                 Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/*"
         - PolicyName: CloudFormationIAMPassRolePolicy
