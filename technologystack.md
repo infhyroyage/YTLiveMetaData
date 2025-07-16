@@ -103,7 +103,10 @@ Google PubSubHubbub Hub がプッシュ通知したデータ、および YouTube
 - 動画 URL (`https://www.youtube.com/watch?v={ビデオ ID}`)
 - サムネイル画像 URL
 
-Amazon SNS では、通知成功・失敗の状態や通知先電話番号などを含む配信ログを Amazon CloudWatch に記録する。
+Amazon SNS では、通知成功・失敗の状態や通知先電話番号などを含む配信ログを、以下の Amazon CloudWatch ロググループに記録する。
+
+- 成功配信ログ: `/sns/{リージョン}/{AWSアカウントID}/DirectPublishToPhoneNumber`
+- 失敗配信ログ: `/sns/{リージョン}/{AWSアカウントID}/DirectPublishToPhoneNumber/Failure`
 
 ### 3.3 重複 SMS 通知防止とデータ管理
 

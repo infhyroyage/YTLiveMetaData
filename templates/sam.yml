@@ -42,13 +42,6 @@ Resources:
       LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
       RetentionInDays: 90
 
-  # CloudWatch Logs for SNS SMS Delivery
-  SnsSmsDeliveryLogs:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/sns/ytlivemetadata-sns/sms/delivery
-      RetentionInDays: 90
-
   # IAM Role for API Gateway CloudWatch Logs
   ApiGatewayCloudWatchLogsRole:
     Type: AWS::IAM::Role
@@ -86,7 +79,9 @@ Resources:
                   - "logs:CreateLogGroup"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
-                Resource: !GetAtt SnsSmsDeliveryLogs.Arn
+                  - "logs:PutMetricFilter"
+                  - "logs:PutRetentionPolicy"
+                Resource: "*"
 
   # DynamoDB Table
   DynamoDBTable:

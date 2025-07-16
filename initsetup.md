@@ -92,9 +92,7 @@ aws cloudformation deploy \
 ```bash
 aws sns set-sms-attributes \
   --attributes \
-    'DeliveryStatusLogging=true' \
-    'DeliveryStatusLogCloudWatchLogsRole=arn:aws:iam::{AWSアカウントID}:role/ytlivemetadata-role-sns-cloudwatch-logs' \
-    'DeliveryStatusSuccessSamplingRate=100'
+    DeliveryStatusIAMRole=arn:aws:iam::{AWSアカウントID}:role/ytlivemetadata-role-sns-cloudwatch-logs,DeliveryStatusSuccessSamplingRate=100
 ```
 
 ### 7. Google PubSubHubbub Hub の初期設定
