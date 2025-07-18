@@ -20,37 +20,6 @@ import requests
         "WEBSUB_CALLBACK_URL_PARAMETER_NAME": "test-callback-url-param",
     },
 )
-class TestGetParameterValue:
-    """get_parameter_value関数のテスト"""
-
-    def test_get_parameter_value_success(self):
-        """パラメータ取得の成功テスト"""
-        from lambdas.websub.app import get_parameter_value
-
-        with patch("lambdas.websub.app.ssm_client") as mock_ssm_client:
-            mock_ssm_client.get_parameter.return_value = {
-                "Parameter": {"Value": "test_value"}
-            }
-
-            result = get_parameter_value("test_param")
-
-            assert result == "test_value"
-            mock_ssm_client.get_parameter.assert_called_once_with(
-                Name="test_param", WithDecryption=True
-            )
-
-
-@patch.dict(
-    os.environ,
-    {
-        "PUBSUBHUBBUB_HUB_URL": "https://pubsubhubbub.appspot.com/",
-        "LEASE_SECONDS": "828000",
-        "HMAC_SECRET_LENGTH": "32",
-        "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
-        "YOUTUBE_CHANNEL_ID_PARAMETER_NAME": "test-channel-id-param",
-        "WEBSUB_CALLBACK_URL_PARAMETER_NAME": "test-callback-url-param",
-    },
-)
 class TestSubscribeToPubsubhubbub:
     """subscribe_to_pubsubhubbub関数のテスト"""
 

@@ -205,6 +205,7 @@ GitHub Dependabot は以下の実行方式に従い、`.github/dependabot.yaml`�
   ```bash
   pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 tests
   ```
+- AWS Lambda 関数間で共通する処理は Lambda レイヤーとして`lambdas/layer`に実装し、コードの重複を避ける。
 - AWS Lambda 関数は Python を用いてコーディングし、`.pylintrc`に記載した例外を除き、必ず Pylint の警告・エラーをすべて解消するように、コード品質を担保する。Pylint の静的解析は、以下のコマンドで実行する。
   ```bash
   pylint lambdas/**/*.py tests/**/*.py

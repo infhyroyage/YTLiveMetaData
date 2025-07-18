@@ -103,6 +103,17 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
+  # Lambda Layer for Common Utilities
+  CommonUtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ytlivemetadata-lambda-layer
+      Description: Common utilities for YouTube Live Metadata Notification Lambda functions
+      ContentUri: ../lambdas/layer/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Delete
+
   # Lambda Function for WebSub Subscription Verification
   GetNotifyLambdaFunction:
     Type: AWS::Serverless::Function
@@ -111,6 +122,8 @@ Resources:
       CodeUri: ../lambdas/get_notify/
       Handler: app.lambda_handler
       Description: Handle WebSub Subscription Verification for YouTube Live Stream Notifications
+      Layers:
+        - !Ref CommonUtilsLayer
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -144,6 +157,8 @@ Resources:
       CodeUri: ../lambdas/post_notify/
       Handler: app.lambda_handler
       Description: Process YouTube Live Stream Notifications and Send SMS
+      Layers:
+        - !Ref CommonUtilsLayer
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -190,6 +205,8 @@ Resources:
       CodeUri: ../lambdas/websub/
       Handler: app.lambda_handler
       Description: Renew Google PubSubHubbub Subscription
+      Layers:
+        - !Ref CommonUtilsLayer
       Environment:
         Variables:
           PUBSUBHUBBUB_HUB_URL: "https://pubsubhubbub.appspot.com/"

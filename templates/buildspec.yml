@@ -10,14 +10,16 @@ phases:
 
   pre_build:
     commands:
+      - export PYTHONPATH="lambdas/layer/python:$PYTHONPATH"
       - pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 tests
-      - pylint lambdas/**/*.py
+      - pylint lambdas/**/*.py tests/**/*.py --disable=import-error
 
   build:
     commands:
       - cp requirements.txt lambdas/get_notify/requirements.txt
       - cp requirements.txt lambdas/post_notify/requirements.txt
       - cp requirements.txt lambdas/websub/requirements.txt
+      - cp requirements.txt lambdas/layer/requirements.txt
       - sam build --template templates/sam.yml
       - sam package --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged.yaml
 

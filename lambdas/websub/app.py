@@ -10,6 +10,7 @@ from typing import Any, Dict
 
 import boto3
 import requests
+from ssm_utils import get_parameter_value
 
 PUBSUBHUBBUB_HUB_URL = os.environ["PUBSUBHUBBUB_HUB_URL"]
 LEASE_SECONDS = int(os.environ["LEASE_SECONDS"])
@@ -26,22 +27,6 @@ ssm_client = boto3.client("ssm")
 # 再試行設定
 MAX_RETRIES = 5
 BASE_DELAY = 1.0  # 初回待機時間（秒）
-
-
-def get_parameter_value(parameter_name: str) -> str:
-    """
-    AWS Systems Manager Parameter Store からパラメータ値を取得する
-
-    Args:
-        parameter_name (str): パラメータ名
-
-    Returns:
-        str: パラメータ値
-    """
-    response: Dict[str, Dict[str, str]] = ssm_client.get_parameter(
-        Name=parameter_name, WithDecryption=True
-    )
-    return response["Parameter"]["Value"]
 
 
 def subscribe_to_pubsubhubbub(

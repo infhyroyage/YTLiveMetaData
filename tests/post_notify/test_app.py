@@ -19,35 +19,6 @@ import pytest
         "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
     },
 )
-class TestGetParameterValue:
-    """get_parameter_value関数のテスト"""
-
-    def test_get_parameter_value_success(self):
-        """パラメータ取得の成功テスト"""
-        from lambdas.post_notify.app import get_parameter_value
-
-        with patch("lambdas.post_notify.app.ssm_client") as mock_ssm_client:
-            mock_ssm_client.get_parameter.return_value = {
-                "Parameter": {"Value": "test_value"}
-            }
-
-            result = get_parameter_value("test_param")
-
-            assert result == "test_value"
-            mock_ssm_client.get_parameter.assert_called_once_with(
-                Name="test_param", WithDecryption=True
-            )
-
-
-@patch.dict(
-    os.environ,
-    {
-        "DYNAMODB_TABLE": "test-dynamodb-table",
-        "SMS_PHONE_NUMBER_PARAMETER_NAME": "test-phone-number-param",
-        "WEBSUB_HMAC_SECRET_PARAMETER_NAME": "test-hmac-secret-param",
-        "YOUTUBE_API_KEY_PARAMETER_NAME": "test-youtube-api-key-param",
-    },
-)
 class TestVerifyHmacSignature:
     """verify_hmac_signature関数のテスト"""
 
@@ -65,14 +36,17 @@ class TestVerifyHmacSignature:
         """サポートされていない署名メソッドの場合のテスト"""
         from lambdas.post_notify.app import verify_hmac_signature
 
-        event = {
-            "headers": {"X-Hub-Signature": "md5=test_signature"},
-            "body": "test_body",
-        }
+        with patch("lambdas.post_notify.app.get_parameter_value") as mock_get_param:
+            mock_get_param.return_value = "test_secret"
 
-        result = verify_hmac_signature(event)
+            event = {
+                "headers": {"X-Hub-Signature": "md5=test_signature"},
+                "body": "test_body",
+            }
 
-        assert result == "Unsupported signature method: md5"
+            result = verify_hmac_signature(event)
+
+            assert result == "Unsupported signature method: md5"
 
     def test_verify_hmac_signature_verification_failed(self):
         """HMAC署名検証が失敗した場合のテスト"""

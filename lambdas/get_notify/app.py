@@ -5,31 +5,13 @@ import os
 import traceback
 from typing import Any, Dict
 
-import boto3
+from ssm_utils import get_parameter_value
 
 WEBSUB_HMAC_SECRET_PARAMETER_NAME = os.environ["WEBSUB_HMAC_SECRET_PARAMETER_NAME"]
 YOUTUBE_CHANNEL_ID_PARAMETER_NAME = os.environ["YOUTUBE_CHANNEL_ID_PARAMETER_NAME"]
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-ssm_client = boto3.client("ssm")
-
-
-def get_parameter_value(parameter_name: str) -> str:
-    """
-    AWS Systems Manager Parameter Store からパラメータ値を取得する
-
-    Args:
-        parameter_name (str): パラメータ名
-
-    Returns:
-        str: パラメータ値
-    """
-    response: Dict[str, Dict[str, str]] = ssm_client.get_parameter(
-        Name=parameter_name, WithDecryption=True
-    )
-    return response["Parameter"]["Value"]
 
 
 def vetify_query_params(query_params: Dict[str, str]) -> str | None:
