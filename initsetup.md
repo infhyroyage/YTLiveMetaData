@@ -110,7 +110,7 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
    ```bash
    aws sns set-sms-attributes \
      --attributes \
-       'DeliveryStatusLogging=false'
+       DeliveryStatusIAMRole="",DeliveryStatusSuccessSamplingRate=0
    ```
 
 2. SAM テンプレートでデプロイしたスタックを削除する:
