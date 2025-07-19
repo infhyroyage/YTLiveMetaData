@@ -241,6 +241,8 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-get-notify"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-post-notify"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-websub"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:ytlivemetadata-lambda-layer"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:ytlivemetadata-lambda-layer:*"
               - Effect: Allow
                 Action: "logs:*"
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
