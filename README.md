@@ -8,6 +8,10 @@ YouTube でライブ配信を開始した直後に、そのライブ配信の開
 
 [technologystack.md](technologystack.md) 参照。
 
-## 初期セットアップ構築手順・削除手順
+## AWS 環境構築手順・削除手順
 
-[initsetup.md](initsetup.md) 参照。
+[awssetup.md](awssetup.md) 参照。
+
+## Contribution Guide
+
+[CONTRIBUTING.md](CONTRIBUTING.md) 参照。

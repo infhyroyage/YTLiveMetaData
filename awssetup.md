@@ -1,4 +1,4 @@
-# 初期セットアップ構築手順・削除手順
+# AWS 環境構築手順・削除手順
 
 ## 構築手順
 
@@ -6,10 +6,12 @@
 
 1. AWS アカウントを用意する
 2. 当リポジトリで使用する S3 バケット名を 1 つ決定する
-3. AWS CLI を[インストール](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)し、ap-northeast-1 リージョンでプロファイルを設定する
-4. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)をインストールする
-5. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
-6. 以下を設定した GitHub [Personal Access Token](https://github.com/settings/personal-access-tokens)を作成する
+3. 以下のツールを事前にインストールしておく:
+   - Git
+   - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+   - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+4. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
+5. 以下を設定した GitHub [Personal Access Token](https://github.com/settings/personal-access-tokens)を作成する
    - Repository access: Only select repositories(フォークしたリポジトリのみを選択)
    - Repository permissions:
      - Contents: Read-only
@@ -48,6 +50,9 @@ aws ssm put-parameter \
 >
 > - 携帯電話 080-9876-5432 → `+818098765432`
 > - 固定電話 03-1234-5678 → `+81312345678`
+
+> [!TIP]
+> CloudFormation/SAM テンプレートでは SecureString タイプの SSM パラメーターがサポートされていないため、AWS CLI を手動実行して作成する。
 
 ### 4. SNS SMS サンドボックスでの電話番号検証
 
