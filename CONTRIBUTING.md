@@ -13,10 +13,10 @@
 
 1. 以下のツールを事前にインストールしておく:
 
-   - Python 3.12
-   - Git
    - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
    - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+   - Git
+   - Python 3.12
 
 2. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
 3. Python 3.12 の仮想環境を作成する:
@@ -75,12 +75,12 @@
   - **AWS CodeBuild**: `buildspec.yml`で定義したテスト・ビルド処理(依存関係解決、テスト実行、SAM パッケージング、S3 アップロード)
   - **AWS CloudFormation**: ビルドアーティファクト(`packaged.yaml`)を用いたサーバーレスアプリケーションのデプロイ
 
-- AWS Lambda 関数の Python のコードは、必ず Python のユニットテストの stmt のカバレッジ率 80%以上をみたすようにして、コード品質を担保する。ユニットテストは、以下のコマンドで実行する。
+- AWS Lambda 関数の Python のユニットテストは lambdas/tests に実装し、stmt のカバレッジ率 80%以上をみたすようにして、コード品質を担保する。ユニットテストは、以下のコマンドで実行する。
   ```bash
   pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 tests
   ```
-- AWS Lambda 関数間で共通する処理は Lambda レイヤーとして`lambdas/layer`に実装し、コードの重複を避ける。
-- AWS Lambda 関数は Python を用いてコーディングし、`.pylintrc`に記載した例外を除き、必ず Pylint の警告・エラーをすべて解消するように、コード品質を担保する。Pylint の静的解析は、以下のコマンドで実行する。
+- AWS Lambda 関数間で共通する処理は Lambda レイヤーとして lambdas/layer に実装し、コードの重複を避ける。
+- AWS Lambda 関数は Python を用いてコーディングし、.pylintrc に記載した例外を除き、必ず Pylint の警告・エラーをすべて解消するように、コード品質を担保する。Pylint の静的解析は、以下のコマンドで実行する。
   ```bash
   pylint lambdas/**/*.py tests/**/*.py --disable=import-error
   ```
@@ -89,7 +89,7 @@
 
 ### セキュリティ上の制約事項
 
-以下のパラメーターは AWS Systems Manager Parameter Store で安全に管理するため、コミット時にリポジトリに保存しないこと。
+以下のパラメーターは AWS Systems Manager Parameter Store で安全に管理するため、リポジトリにコミットしないこと。
 
 - API Gateway の`ytlivemetadata-lambda-post-notify`/`ytlivemetadata-lambda-get-notify`のエンドポイント
 - Google PubSubHubbub Hub サブスクリプションの HMAC シークレット

@@ -15,3 +15,7 @@ YouTube でライブ配信を開始した直後に、そのライブ配信の開
 ## Contribution Guide
 
 [CONTRIBUTING.md](CONTRIBUTING.md) 参照。
+
+## ライセンス
+
+[MIT](LICENSE)
