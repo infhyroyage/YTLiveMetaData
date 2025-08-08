@@ -219,12 +219,14 @@ def send_sms_notification(title: str, url: str, thumbnail_url: str) -> None:
     """
     phone_number: str = get_parameter_value(SMS_PHONE_NUMBER_PARAMETER_NAME)
 
-    # 配信タイトル、動画URL、サムネイル画像URLを個別に送信
-    # サムネイル画像URLを取得できない(空文字列である)場合は通知しない
-    sns_client.publish(PhoneNumber=phone_number, Message=title)
-    sns_client.publish(PhoneNumber=phone_number, Message=url)
+    # 配信タイトル、動画URL、サムネイル画像URLをまとめて送信
+    # サムネイル画像URLを取得できない(空文字列である)場合はそれを含めない
     if thumbnail_url:
-        sns_client.publish(PhoneNumber=phone_number, Message=thumbnail_url)
+        sns_client.publish(
+            PhoneNumber=phone_number, Message=f"{title}\n\n{url}\n\n{thumbnail_url}"
+        )
+    else:
+        sns_client.publish(PhoneNumber=phone_number, Message=f"{title}\n\n{url}")
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

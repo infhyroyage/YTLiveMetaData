@@ -447,17 +447,15 @@ class TestSendSmsNotification:
                     "https://example.com/video",
                     "https://example.com/thumbnail.jpg",
                 )
-
-                assert mock_sns_client.publish.call_count == 3
-                mock_sns_client.publish.assert_any_call(
-                    PhoneNumber="+1234567890", Message="Test Title"
-                )
-                mock_sns_client.publish.assert_any_call(
-                    PhoneNumber="+1234567890", Message="https://example.com/video"
-                )
-                mock_sns_client.publish.assert_any_call(
+                mock_sns_client.publish.assert_called_once_with(
                     PhoneNumber="+1234567890",
-                    Message="https://example.com/thumbnail.jpg",
+                    Message=(
+                        "Test Title"
+                        "\n\n"
+                        "https://example.com/video"
+                        "\n\n"
+                        "https://example.com/thumbnail.jpg"
+                    ),
                 )
 
     def test_send_sms_notification_without_thumbnail(self):
@@ -468,13 +466,9 @@ class TestSendSmsNotification:
             mock_get_param.return_value = "+1234567890"
             with patch("lambdas.post_notify.app.sns_client") as mock_sns_client:
                 send_sms_notification("Test Title", "https://example.com/video", "")
-
-                assert mock_sns_client.publish.call_count == 2
-                mock_sns_client.publish.assert_any_call(
-                    PhoneNumber="+1234567890", Message="Test Title"
-                )
-                mock_sns_client.publish.assert_any_call(
-                    PhoneNumber="+1234567890", Message="https://example.com/video"
+                mock_sns_client.publish.assert_called_once_with(
+                    PhoneNumber="+1234567890",
+                    Message=("Test Title\n\nhttps://example.com/video"),
                 )
 
 

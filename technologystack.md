@@ -97,11 +97,21 @@ Google PubSubHubbub Hub がプッシュ通知したデータは、[XML 形式](h
 
 ### 3.2 SMS 通知の送信
 
-Google PubSubHubbub Hub がプッシュ通知したデータ、および YouTube Data API v3 を実行して取得したデータをもとに、Amazon SNS を利用して以下のライブ配信の情報を別々に SMS 通知する:
+Google PubSubHubbub Hub がプッシュ通知したデータ、および YouTube Data API v3 を実行して取得したデータをもとに、Amazon SNS を利用して、以下のライブ配信の情報を SMS に通知する:
 
 - 配信タイトル
 - 動画 URL (`https://www.youtube.com/watch?v={ビデオ ID}`)
-- サムネイル画像 URL
+- サムネイル画像 URL(取得できない場合は本文に含めない)
+
+SMS でのメッセージ本文は、 以下の通り 1 通のメッセージで構成される:
+
+```
+{配信タイトル}
+
+https://www.youtube.com/watch?v={ビデオ ID}
+
+{サムネイル画像 URL}
+```
 
 Amazon SNS では、通知成功・失敗の状態や通知先電話番号などを含む配信ログを、以下の Amazon CloudWatch ロググループに記録する。
 
