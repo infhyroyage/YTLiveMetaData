@@ -1,4 +1,4 @@
-"""websub Lambda関数のテスト"""
+"""Google PubSubHubbubのサブスクリプションを再登録するユニットテスト"""
 
 import os
 from unittest.mock import Mock, patch
