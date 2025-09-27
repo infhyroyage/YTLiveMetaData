@@ -78,9 +78,10 @@
   ```bash
   pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
   ```
+
 - AWS Lambda 関数間で共通する処理は Lambda レイヤーとして lambdas/layer に実装し、コードの重複を避ける。
   ```bash
-  pylint lambdas/**/*.py --disable=import-error
+  pylint lambdas/**/*.py
   ```
 
 ## コミット・プルリクエストのワークフロー
@@ -105,7 +106,7 @@
   ```
 - [ ] 以下のコマンドを実行して、Pylint の警告・エラーをすべて解消する:
   ```bash
-  pylint lambdas/**/*.py --disable=import-error
+  pylint lambdas/**/*.py
   ```
 - [ ] ターゲットを main ブランチに設定している。
 

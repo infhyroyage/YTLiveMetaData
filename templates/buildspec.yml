@@ -12,7 +12,7 @@ phases:
     commands:
       - export PYTHONPATH="lambdas/layer/python:$PYTHONPATH"
       - pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
-      - pylint lambdas/**/*.py --disable=import-error
+      - pylint lambdas/**/*.py
 
   build:
     commands:
