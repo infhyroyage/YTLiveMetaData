@@ -38,7 +38,7 @@ Google PubSubHubbub Hub を経由した WebSub の仕組みを利用して YouTu
 - Amazon EventBridge (スケジュールタスク・自動更新)
 - Amazon S3 (ビルドアーティファクトのストレージ)
 - Amazon SNS (SMS 通知の送信)
-- AWS CloudFormation (サーバーレスアプリケーションのデプロイ)
+- AWS CloudFormation (スタック管理)
 - AWS CodeBuild (コードビルド・テスト実行)
 - AWS CodePipeline (CI/CD パイプライン管理)
 - AWS IAM (権限管理)
@@ -60,7 +60,7 @@ AWS 以外の外部サービスとも連携することにより、コア機能�
 | ----------------------------------- | ------------------ | ------------------------------------------------------------------------------------ |
 | `ytlivemetadata-apig`               | Amazon API Gateway | WebSub での YouTube ライブ配信通知を受け取る API エンドポイント                      |
 | `ytlivemetadata-build`              | AWS CodeBuild      | ビルドプロセスを管理するアプリケーション                                             |
-| `ytlivemetadata-dynamodb`           | Amazon DynamoDB    | 処理済みの YouTube ライブ配信を記録するテーブル                                      |
+| `ytlivemetadata-dynamodb`           | Amazon DynamoDB    | 処理済みの YouTube ライブ配信を記録するデータベース                                  |
 | `ytlivemetadata-ebrule-websub`      | Amazon EventBridge | `ytlivemetadata-lambda-websub`を定期実行するルール                                   |
 | `ytlivemetadata-lambda-get-notify`  | AWS Lambda         | WebSub サブスクリプション確認処理を行う Lambda 関数                                  |
 | `ytlivemetadata-lambda-post-notify` | AWS Lambda         | WebSub での YouTube ライブ配信通知情報をもとに SMS で通知する Lambda 関数            |

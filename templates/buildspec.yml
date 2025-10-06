@@ -11,8 +11,8 @@ phases:
   pre_build:
     commands:
       - export PYTHONPATH="lambdas/layer/python:$PYTHONPATH"
-      - pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 tests
-      - pylint lambdas/**/*.py tests/**/*.py --disable=import-error
+      - pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+      - pylint lambdas/**/*.py
 
   build:
     commands:

@@ -1,4 +1,4 @@
-"""ssm_utils.py のユニットテスト"""
+"""AWS Systems Manager Parameter Store用のユーティリティ関数のユニットテスト"""
 
 from unittest.mock import patch
 
