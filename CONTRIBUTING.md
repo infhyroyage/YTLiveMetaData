@@ -75,14 +75,13 @@
   - **AWS CodeBuild**: `buildspec.yml`で定義したテスト・ビルド処理(依存関係解決、テスト実行、SAM パッケージング、S3 アップロード)
   - **AWS CloudFormation**: ビルドアーティファクト(`packaged.yaml`)を用いたサーバーレスアプリケーションのデプロイ
 
-- AWS Lambda 関数の Python のユニットテストは lambdas/tests に実装し、stmt のカバレッジ率 80%以上をみたすようにして、コード品質を担保する。ユニットテストは、以下のコマンドで実行する。
   ```bash
-  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 tests
+  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
   ```
+
 - AWS Lambda 関数間で共通する処理は Lambda レイヤーとして lambdas/layer に実装し、コードの重複を避ける。
-- AWS Lambda 関数は Python を用いてコーディングし、.pylintrc に記載した例外を除き、必ず Pylint の警告・エラーをすべて解消するように、コード品質を担保する。Pylint の静的解析は、以下のコマンドで実行する。
   ```bash
-  pylint lambdas/**/*.py tests/**/*.py --disable=import-error
+  pylint lambdas/**/*.py
   ```
 
 ## コミット・プルリクエストのワークフロー
@@ -103,11 +102,11 @@
 
 - [ ] 以下のコマンドを実行して、すべてのユニットテストが成功し、カバレッジを 80% 以上にする:
   ```bash
-  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 tests
+  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
   ```
 - [ ] 以下のコマンドを実行して、Pylint の警告・エラーをすべて解消する:
   ```bash
-  pylint lambdas/**/*.py tests/**/*.py --disable=import-error
+  pylint lambdas/**/*.py
   ```
 - [ ] ターゲットを main ブランチに設定している。
 

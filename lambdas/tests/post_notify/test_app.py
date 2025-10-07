@@ -1,4 +1,4 @@
-"""post_notify Lambda関数のテスト"""
+"""WebSubでのYouTubeライブ配信通知情報をもとにSMS通知を送信するユニットテスト"""
 
 import hashlib
 import hmac

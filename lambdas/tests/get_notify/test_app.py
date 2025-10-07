@@ -1,4 +1,4 @@
-"""WebSubでのYouTubeライブ配信サブスクリプション登録を確認するテスト"""
+"""WebSubでのYouTubeライブ配信サブスクリプション登録を確認するユニットテスト"""
 
 import os
 from unittest.mock import patch
