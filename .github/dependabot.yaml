@@ -15,3 +15,6 @@ updates:
     assignees:
       - "infhyroyage"
     labels: []
+    ignore:
+      - dependency-name: "boto3"
+        update-types: ["version-update:semver-patch"]
