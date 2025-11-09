@@ -5,13 +5,15 @@
 ### 1. 必要な前提条件の準備
 
 1. AWS アカウントを用意する
-2. 当リポジトリで使用する S3 バケット名を 1 つ決定する
-3. 以下のツールを事前にインストールしておく:
+2. AWS マネージドポリシー AdministratorAccess 相当の権限を持つ IAM ユーザーでログインし、アクセスキーを発行する
+3. 当リポジトリで使用する S3 バケット名を 1 つ決定する
+4. 以下のツールを事前にインストールしておく:
    - Git
    - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
    - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
-4. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
-5. 以下を設定した GitHub [Personal Access Token](https://github.com/settings/personal-access-tokens)を作成する
+5. 発行したアクセスキーを AWS CLI に設定する
+6. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
+7. 以下を設定した GitHub [Personal Access Token](https://github.com/settings/personal-access-tokens)を作成する
    - Repository access: Only select repositories(フォークしたリポジトリのみを選択)
    - Repository permissions:
      - Contents: Read-only
