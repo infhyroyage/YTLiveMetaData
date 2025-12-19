@@ -83,7 +83,7 @@ aws cloudformation deploy \
   --parameter-overrides \
     ArtifactS3BucketName="{決定したS3バケット名}" \
     GitHubOwnerName="{GitHubユーザー名}" \
-    GitHubPAT="{作成したGitHubパーソナルアクセストークン}" \
+    GitHubPAT="{作成したGitHub Personal Access Token}" \
     GitHubRepositoryName="{フォークしたリポジトリ名}" \
     YouTubeChannelId="{監視対象のYouTubeチャンネルID}" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
