@@ -1,4 +1,4 @@
-aws-sam-cli==1.150.1
+aws-sam-cli==1.151.0
 boto3==1.42.1
 pylint==4.0.4
 pytest==9.0.2
