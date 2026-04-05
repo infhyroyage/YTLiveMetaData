@@ -2,5 +2,5 @@ aws-sam-cli==1.157.1
 boto3==1.42.1
 pylint==4.0.5
 pytest==9.0.2
-pytest-cov==7.0.0
+pytest-cov==7.1.0
 requests==2.33.1
