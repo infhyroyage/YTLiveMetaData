@@ -13,11 +13,6 @@
    - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 5. 発行したアクセスキーを AWS CLI に設定する
 6. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
-7. 以下を設定した GitHub [Personal Access Token](https://github.com/settings/personal-access-tokens)を作成する
-   - Repository access: Only select repositories(フォークしたリポジトリのみを選択)
-   - Repository permissions:
-     - Contents: Read-only
-     - Metadata: Read-only
 
 ### 2. YouTube Data API v3 の認証情報の取得
 
@@ -53,7 +48,7 @@ aws ssm put-parameter \
 > - 携帯電話 080-9876-5432 → `+818098765432`
 > - 固定電話 03-1234-5678 → `+81312345678`
 
-> [!TIP]
+> [!TIP]  
 > CloudFormation/SAM テンプレートでは SecureString タイプの SSM パラメーターがサポートされていないため、AWS CLI を手動実行して作成する。
 
 ### 4. SNS SMS サンドボックスでの電話番号検証
@@ -72,7 +67,24 @@ aws ssm put-parameter \
 7. 受信した OTP を **検証コード** ボックスに入力し、**電話番号を検証** ボタンを押下する
 8. 検証ステータスが **検証済み** になることを確認する
 
-### 5. CI/CD 用 CloudFormation テンプレートのデプロイ
+### 5. AWS CodeConnections の Connection 作成
+
+CodePipeline の Source ステージで GitHub リポジトリと接続するため、AWS CodeConnections の Connection を事前に作成する:
+
+1. [AWS マネジメントコンソール](https://console.aws.amazon.com/)にログインする
+2. リージョンが ap-northeast-1 (東京) に設定されていることを確認する
+3. 上側のテキストボックスで**CodePipeline**で検索し、左側のナビゲーションペインで **設定** → **接続** を開く
+4. **接続を作成** を選択する
+5. プロバイダーで **GitHub** を選択し、任意の接続名を入力して **接続を作成** を選択する
+6. **新しいアプリをインストールする** を選択し、GitHub の認証画面で GitHub App をインストール後に、 **接続** を選択する
+   - リポジトリアクセスは **Only select repositories** を選択し、フォークしたリポジトリのみを選択する
+7. 接続のステータスが **利用可能** になっていることを確認する
+8. 作成した Connection の ARN を控える
+
+> [!TIP]  
+> Connection の作成と GitHub App のインストールは、AWS マネジメントコンソール上での手動で操作する必要がある。
+
+### 6. CI/CD 用 CloudFormation テンプレートのデプロイ
 
 リポジトリのルートディレクトリに移動して、以下のコマンドを実行し、CI/CD パイプライン用 CloudFormation スタックをデプロイする:
 
@@ -82,8 +94,8 @@ aws cloudformation deploy \
   --stack-name ytlivemetadata-stack-pipeline \
   --parameter-overrides \
     ArtifactS3BucketName="{決定したS3バケット名}" \
+    CodeStarConnectionArn="{控えた Connection の ARN}" \
     GitHubOwnerName="{GitHubユーザー名}" \
-    GitHubPAT="{作成したGitHub Personal Access Token}" \
     GitHubRepositoryName="{フォークしたリポジトリ名}" \
     YouTubeChannelId="{監視対象のYouTubeチャンネルID}" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
@@ -92,7 +104,7 @@ aws cloudformation deploy \
 > [!NOTE]  
 > このデプロイ完了直後に、CI/CD パイプラインである CodePipeline(`ytlivemetadata-stack-pipeline`) が自動実行し、SAM テンプレートによるサーバーレスアプリケーションの実行環境用 CloudFormation スタックのデプロイも自動実行する。この実行状況は、AWS マネジメントコンソールの CloudFormation のスタックから確認できる。
 
-### 6. SNS の SMS 配信ログの有効化
+### 7. SNS の SMS 配信ログの有効化
 
 以下のコマンドを実行して、CloudWatch ロググループへの SNS の SMS 配信ログ設定を有効化する:
 
@@ -102,7 +114,7 @@ aws sns set-sms-attributes \
     DeliveryStatusIAMRole=arn:aws:iam::{AWSアカウントID}:role/ytlivemetadata-role-sns-cloudwatch-logs,DeliveryStatusSuccessSamplingRate=100
 ```
 
-### 7. Google PubSubHubbub Hub の初期設定
+### 8. Google PubSubHubbub Hub の初期設定
 
 以下のコマンドを実行し、Lambda 関数`ytlivemetadata-lambda-websub`を手動実行して、Google PubSubHubbub Hub に登録する:
 
@@ -127,7 +139,6 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
    ```
 
 3. SNS SMS サンドボックスから検証済み電話番号を削除する:
-
    1. [Amazon SNS コンソール](https://console.aws.amazon.com/sns/home)にログインする
    2. リージョンが ap-northeast-1 (東京) に設定されていることを確認する
    3. 左側のナビゲーションペインで **Text messaging (SMS)** を選択する
@@ -149,11 +160,17 @@ aws lambda invoke --function-name ytlivemetadata-lambda-websub response.json
    aws cloudformation delete-stack --stack-name ytlivemetadata-stack-pipeline
    ```
 
-6. 機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)の SSM パラメータを削除する:
+6. AWS CodeConnections の Connection を削除する:
+   1. [AWS マネジメントコンソール](https://console.aws.amazon.com/)にログインする
+   2. リージョンが ap-northeast-1 (東京) に設定されていることを確認する
+   3. **Developer Tools** → **設定** → **接続** を開く
+   4. 作成した Connection を選択し、**削除** を実行する
+
+7. 機密情報(YouTube Data API v3 の API キー・SMS 通知先の電話番号)の SSM パラメータを削除する:
 
    ```bash
    aws ssm delete-parameter --name "/ytlivemetadata/youtube_api_key"
    aws ssm delete-parameter --name "/ytlivemetadata/phone_number"
    ```
 
-7. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する
+8. [Google Cloud Console](https://console.cloud.google.com/)にアクセスし、作成したプロジェクトを削除する

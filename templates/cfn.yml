@@ -6,14 +6,13 @@ Parameters:
     Type: String
     Description: S3 Bucket Name for CodeBuild Artifact
 
+  CodeStarConnectionArn:
+    Type: String
+    Description: ARN of the pre-created CodeConnections Connection for GitHub
+
   GitHubOwnerName:
     Type: String
     Description: GitHub Repository Owner Name
-
-  GitHubPAT:
-    Type: String
-    Description: GitHub Personal Access Token
-    NoEcho: true
 
   GitHubRepositoryName:
     Type: String
@@ -193,8 +192,10 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: "codestar-connections:UseConnection"
-                Resource: "*"
+                Action:
+                  - "codestar-connections:UseConnection"
+                  - "codeconnections:UseConnection"
+                Resource: !Ref CodeStarConnectionArn
         - PolicyName: CodePipelineIAMPassRolePolicy
           PolicyDocument:
             Version: "2012-10-17"
@@ -287,14 +288,15 @@ Resources:
             - Name: Source
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
+                Owner: AWS
+                Provider: CodeStarSourceConnection
                 Version: "1"
               Configuration:
-                Owner: !Ref GitHubOwnerName
-                Repo: !Ref GitHubRepositoryName
-                Branch: main
-                OAuthToken: !Ref GitHubPAT
+                ConnectionArn: !Ref CodeStarConnectionArn
+                FullRepositoryId: !Sub "${GitHubOwnerName}/${GitHubRepositoryName}"
+                BranchName: main
+                OutputArtifactFormat: CODE_ZIP
+                DetectChanges: "true"
               OutputArtifacts:
                 - Name: SourceCode
         - Name: Build
