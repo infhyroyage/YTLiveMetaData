@@ -54,7 +54,7 @@ aws ssm put-parameter \
 ### 4. SNS SMS サンドボックスでの電話番号検証
 
 > [!IMPORTANT]  
-> この手順は、SMS 通知を受信する電話番号ごとに実行する必要がある。検証を行わないと、Lambda 関数`ytlivemetadata-lambda-post-notify`が成功しても、SMS 通知が送信されない。
+> この手順は、SMS 通知を受信する電話番号ごとに実行する必要がある。検証を行わないと、Lambda 関数 `ytlivemetadata-lambda-post-notify` が成功したり、 CodePipeline `ytlivemetadata-pipeline` が失敗したりしても、SMS 通知が送信されない。
 
 1. [Amazon SNS コンソール](https://console.aws.amazon.com/sns/home)にログインする
 2. リージョンが ap-northeast-1 (東京) に設定されていることを確認する

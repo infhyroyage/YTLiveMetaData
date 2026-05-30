@@ -42,6 +42,13 @@ Resources:
       LogGroupName: /aws/lambda/ytlivemetadata-lambda-websub
       RetentionInDays: 90
 
+  # CloudWatch Logs for Lambda Function to Notify CodePipeline Stage Failures
+  PipelineNotifyLambdaFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/ytlivemetadata-lambda-post-pipeline
+      RetentionInDays: 90
+
   # IAM Role for API Gateway CloudWatch Logs
   ApiGatewayCloudWatchLogsRole:
     Type: AWS::IAM::Role
@@ -240,6 +247,51 @@ Resources:
             Description: Schedule to Refresh Google PubSubHubbub Subscription Before It Expires
       LoggingConfig:
         LogGroup: !Ref WebSubLambdaFunctionLogs
+
+  # Lambda Function to Notify CodePipeline Stage Failures via SMS
+  PipelineNotifyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ytlivemetadata-lambda-post-pipeline
+      CodeUri: ../lambdas/post_pipeline/
+      Handler: app.lambda_handler
+      Description: Notify CodePipeline Stage Failures via SMS
+      Layers:
+        - !Ref CommonUtilsLayer
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:DescribeParameters
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ytlivemetadata/phone_number"
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: "*"
+      Environment:
+        Variables:
+          SMS_PHONE_NUMBER_PARAMETER_NAME: "/ytlivemetadata/phone_number"
+      Events:
+        PipelineFailureEvent:
+          Type: EventBridgeRule
+          Properties:
+            RuleName: ytlivemetadata-ebrule-pipeline
+            Pattern:
+              source:
+                - aws.codepipeline
+              detail-type:
+                - CodePipeline Stage Execution State Change
+              detail:
+                state:
+                  - FAILED
+                pipeline:
+                  - ytlivemetadata-pipeline
+      LoggingConfig:
+        LogGroup: !Ref PipelineNotifyLambdaFunctionLogs
 
   # API Gateway Account Configuration
   ApiGatewayAccount:

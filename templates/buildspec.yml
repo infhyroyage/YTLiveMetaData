@@ -19,6 +19,7 @@ phases:
       - cp requirements.txt lambdas/get_notify/requirements.txt
       - cp requirements.txt lambdas/post_notify/requirements.txt
       - cp requirements.txt lambdas/websub/requirements.txt
+      - cp requirements.txt lambdas/post_pipeline/requirements.txt
       - cp requirements.txt lambdas/layer/requirements.txt
       - sam build --template templates/sam.yml
       - sam package --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged.yaml

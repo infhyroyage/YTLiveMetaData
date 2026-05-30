@@ -235,13 +235,16 @@ Resources:
                 Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/ytlivemetadata-dynamodb"
               - Effect: Allow
                 Action: "events:*"
-                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/ytlivemetadata-ebrule-websub"
+                Resource:
+                  - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/ytlivemetadata-ebrule-websub"
+                  - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/ytlivemetadata-ebrule-pipeline"
               - Effect: Allow
                 Action: "iam:*"
                 Resource:
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-get-notify-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-post-notify-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-websub-*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-lambda-post-pipeline-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-stack-sam-*"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-role-apigateway-cloudwatch-logs"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/ytlivemetadata-role-sns-cloudwatch-logs"
@@ -251,6 +254,7 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-get-notify"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-post-notify"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-websub"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ytlivemetadata-lambda-post-pipeline"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:ytlivemetadata-lambda-layer"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:ytlivemetadata-lambda-layer:*"
               - Effect: Allow
