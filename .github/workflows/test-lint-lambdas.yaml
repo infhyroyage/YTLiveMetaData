@@ -1,14 +1,13 @@
-name: Run Tests, Lint and Package Lambda Functions before Merging Pull Request
+name: Run Tests and Lint in Lambda Functions before Merging Pull Request
 
 on:
   pull_request:
     branches:
       - main
     paths:
-      - .github/workflows/test-lint-package-lambdas.yaml
+      - .github/workflows/test-lint-lambdas.yaml
       - lambdas/**
       - requirements.txt
-      - templates/sam.yml
       - pytest.ini
 
 env:
@@ -64,43 +63,3 @@ jobs:
 
       - name: Run lint
         run: pylint lambdas/**/*.py
-
-  package:
-    needs: [test, lint]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: requirements.txt
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Copy requirements to Lambda directories
-        run: |
-          for dir in get_notify post_notify websub post_pipeline layer; do
-            cp requirements.txt "lambdas/${dir}/requirements.txt"
-          done
-
-      - name: Build Lambda functions
-        run: sam build --template templates/sam.yml
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.AWS_ARN_IAM_ROLE_GITHUB_ACTIONS }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-
-      - name: Package Lambda functions
-        run: sam package --s3-bucket ${{ vars.ARTIFACT_S3_BUCKET_NAME }} --output-template-file packaged.yaml
