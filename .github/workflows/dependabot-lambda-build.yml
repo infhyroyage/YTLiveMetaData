@@ -1,0 +1,44 @@
+name: Dependabot Lambda Build
+
+on:
+  pull_request:
+    paths:
+      - requirements.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-lambda-build-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lambda-build:
+    name: SAM Lambda Build
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Copy requirements to Lambda directories
+        run: |
+          for dir in get_notify post_notify websub post_pipeline layer; do
+            cp requirements.txt "lambdas/${dir}/requirements.txt"
+          done
+
+      - name: Build Lambda functions
+        run: sam build --template templates/sam.yml
