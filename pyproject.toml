@@ -1,0 +1,20 @@
+[project]
+name = "ytlivemetadata"
+version = "0.1.0"
+description = "YouTube Live Metadata Notification - serverless SMS notifier"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3==1.43.7",
+    "requests==2.33.1",
+]
+
+[dependency-groups]
+dev = [
+    "aws-sam-cli==1.162.1",
+    "pylint==4.0.6",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+]
+
+[tool.uv]
+package = false

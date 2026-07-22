@@ -4,4 +4,6 @@
 **/.DS_Store
 **/__pycache__
 response.json
+.venv/
 venv/
+lambdas/**/requirements.txt

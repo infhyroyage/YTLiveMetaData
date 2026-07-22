@@ -5,24 +5,28 @@ phases:
     runtime-versions:
       python: 3.12
     commands:
-      - pip install -U pip
-      - pip install -r requirements.txt
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - export PATH="$HOME/.local/bin:$PATH"
+      - uv sync --locked --all-groups
 
   pre_build:
     commands:
+      - export PATH="$HOME/.local/bin:$PATH"
       - export PYTHONPATH="lambdas/layer/python:$PYTHONPATH"
-      - pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
-      - pylint lambdas/**/*.py
+      - uv run pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+      - uv run pylint lambdas/**/*.py
 
   build:
     commands:
-      - cp requirements.txt lambdas/get_notify/requirements.txt
-      - cp requirements.txt lambdas/post_notify/requirements.txt
-      - cp requirements.txt lambdas/websub/requirements.txt
-      - cp requirements.txt lambdas/post_pipeline/requirements.txt
-      - cp requirements.txt lambdas/layer/requirements.txt
-      - sam build --template templates/sam.yml
-      - sam package --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged.yaml
+      - export PATH="$HOME/.local/bin:$PATH"
+      - |
+        for dir in get_notify post_notify websub post_pipeline; do
+          uv export --frozen --no-dev --no-emit-project --no-hashes --no-header --no-annotate \
+            -o "lambdas/${dir}/requirements.txt"
+        done
+      - export SAM_CLI_BETA_PYTHON_UV=1
+      - uv run sam build --beta-features --template templates/sam.yml
+      - uv run sam package --s3-bucket $ARTIFACT_BUCKET --output-template-file packaged.yaml
 
 artifacts:
   files:
@@ -31,4 +35,4 @@ artifacts:
 
 cache:
   paths:
-    - "/root/.cache/pip/**/*"
+    - "/root/.cache/uv/**/*"

@@ -3,7 +3,8 @@ name: Dependabot Lambda Build
 on:
   pull_request:
     paths:
-      - requirements.txt
+      - pyproject.toml
+      - uv.lock
 
 permissions:
   contents: read
@@ -22,23 +23,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Python 3.12 Environment
-        uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
         with:
+          enable-cache: true
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: uv sync --locked --all-groups
 
-      - name: Copy requirements to Lambda directories
+      - name: Export runtime requirements to Lambda directories
         run: |
-          for dir in get_notify post_notify websub post_pipeline layer; do
-            cp requirements.txt "lambdas/${dir}/requirements.txt"
+          for dir in get_notify post_notify websub post_pipeline; do
+            uv export --frozen --no-dev --no-emit-project --no-hashes --no-header --no-annotate \
+              -o "lambdas/${dir}/requirements.txt"
           done
 
       - name: Build Lambda functions
-        run: sam build --template templates/sam.yml
+        env:
+          SAM_CLI_BETA_PYTHON_UV: "1"
+        run: uv run sam build --beta-features --template templates/sam.yml

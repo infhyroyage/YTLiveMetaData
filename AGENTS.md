@@ -8,19 +8,23 @@
 
 ### 前提（初回 VM のみ）
 
-Ubuntu では `python3.12 -m venv` に **`python3.12-venv`** が必要です（未導入時は `sudo apt-get install -y python3.12-venv`）。
+[uv](https://docs.astral.sh/uv/) をインストールします（未導入時）:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+```
 
 ### 仮想環境と依存関係
 
+パッケージ管理には **uv** を使用します（`pyproject.toml` / `uv.lock`）。
+
 ```bash
 cd /workspace
-python3.12 -m venv venv
-source venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
+uv sync --locked --all-groups
 ```
 
-以降のセッションでは `source venv/bin/activate` を先に実行してください。
+以降のセッションでは `source .venv/bin/activate` を先に実行するか、各コマンドを `uv run` 経由で実行してください。
 
 ### 必須環境変数（テスト・import 時）
 
@@ -39,33 +43,30 @@ export PYTHONPATH="lambdas/layer/python:$PYTHONPATH"
 ### Lint
 
 ```bash
-source venv/bin/activate
-pylint lambdas/**/*.py
+uv run pylint lambdas/**/*.py
 ```
 
 ### テスト（カバレッジ 80% 以上必須）
 
 ```bash
-source venv/bin/activate
 export AWS_DEFAULT_REGION=ap-northeast-1
 export PYTHONPATH="lambdas/layer/python:$PYTHONPATH"
-pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+uv run pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
 ```
 
 詳細は [CONTRIBUTING.md](CONTRIBUTING.md) を参照。
 
 ### ビルド（SAM）
 
-`buildspec.yml` と同様、各 Lambda ディレクトリへ `requirements.txt` をコピーしてからビルドします（コピー先は **git 管理外**の作業用ファイル）。
+`buildspec.yml` と同様、各 Lambda ディレクトリへランタイム依存の `requirements.txt` を `uv export` で生成してからビルドします（コピー先は **git 管理外**の作業用ファイル）。SAM は `BuildMethod: python-uv`（beta）を使用します。
 
 ```bash
-source venv/bin/activate
-cp requirements.txt lambdas/get_notify/requirements.txt
-cp requirements.txt lambdas/post_notify/requirements.txt
-cp requirements.txt lambdas/websub/requirements.txt
-cp requirements.txt lambdas/post_pipeline/requirements.txt
-cp requirements.txt lambdas/layer/requirements.txt
-sam build --template templates/sam.yml
+for dir in get_notify post_notify websub post_pipeline; do
+  uv export --frozen --no-dev --no-emit-project --no-hashes --no-header --no-annotate \
+    -o "lambdas/${dir}/requirements.txt"
+done
+export SAM_CLI_BETA_PYTHON_UV=1
+uv run sam build --beta-features --template templates/sam.yml
 ```
 
 成果物は `.aws-sam/build`（`.gitignore` 対象）。
@@ -79,7 +80,7 @@ sam build --template templates/sam.yml
 Docker なしで `get_notify` のハンドラを動かす最小例（SSM はモック）:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 export AWS_DEFAULT_REGION=ap-northeast-1
 export WEBSUB_HMAC_SECRET_PARAMETER_NAME=/ytlivemetadata/websub_hmac_secret
 export YOUTUBE_CHANNEL_ID_PARAMETER_NAME=/ytlivemetadata/youtube_channel_id

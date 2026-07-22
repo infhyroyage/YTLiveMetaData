@@ -7,7 +7,8 @@ on:
     paths:
       - .github/workflows/test-lint-lambdas.yaml
       - lambdas/**
-      - requirements.txt
+      - pyproject.toml
+      - uv.lock
       - pytest.ini
 
 env:
@@ -27,21 +28,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
-        uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
         with:
+          enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: uv sync --locked --all-groups
 
       - name: Run unittests with coverage
         run: |
-          pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+          uv run pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
 
   lint:
     runs-on: ubuntu-latest
@@ -49,17 +47,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
-        uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
         with:
+          enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: uv sync --locked --all-groups
 
       - name: Run lint
-        run: pylint lambdas/**/*.py
+        run: uv run pylint lambdas/**/*.py

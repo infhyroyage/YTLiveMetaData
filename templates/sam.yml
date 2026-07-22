@@ -155,6 +155,8 @@ Resources:
             RestApiId: !Ref ApiGateway
       LoggingConfig:
         LogGroup: !Ref GetNotifyLambdaFunctionLogs
+    Metadata:
+      BuildMethod: python-uv
 
   # Lambda Function to Process WebSub Notifications and Send SMS
   PostNotifyLambdaFunction:
@@ -203,6 +205,8 @@ Resources:
             RestApiId: !Ref ApiGateway
       LoggingConfig:
         LogGroup: !Ref PostNotifyLambdaFunctionLogs
+    Metadata:
+      BuildMethod: python-uv
 
   # Lambda Function to Renew Google PubSubHubbub Subscription
   WebSubLambdaFunction:
@@ -247,6 +251,8 @@ Resources:
             Description: Schedule to Refresh Google PubSubHubbub Subscription Before It Expires
       LoggingConfig:
         LogGroup: !Ref WebSubLambdaFunctionLogs
+    Metadata:
+      BuildMethod: python-uv
 
   # Lambda Function to Notify CodePipeline Stage Failures via SMS
   PipelineNotifyLambdaFunction:
@@ -292,6 +298,8 @@ Resources:
                   - ytlivemetadata-pipeline
       LoggingConfig:
         LogGroup: !Ref PipelineNotifyLambdaFunctionLogs
+    Metadata:
+      BuildMethod: python-uv
 
   # API Gateway Account Configuration
   ApiGatewayAccount:
