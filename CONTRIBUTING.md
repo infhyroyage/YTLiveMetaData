@@ -5,6 +5,7 @@
 本システムの開発には、以下のツールとテクノロジーを使用する:
 
 - Python 3.12 (プログラミング言語)
+- [uv](https://docs.astral.sh/uv/) (Python パッケージ管理)
 - AWS SAM CLI (ローカルテストとデプロイ)
 - pytest (ユニットテスト)
 - pylint (コード静的解析)
@@ -15,29 +16,24 @@
 
    - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
    - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+   - [uv](https://docs.astral.sh/uv/getting-started/installation/)
    - Git
    - Python 3.12
 
 2. GitHub アカウントを用意して、このリポジトリをフォークし、ローカル環境にクローンする
-3. Python 3.12 の仮想環境を作成する:
+3. uv で依存関係を同期し、仮想環境を作成する:
 
    ```bash
-   python3.12 -m venv venv
+   uv sync --locked --all-groups
    ```
 
-4. Python 3.12 の仮想環境を有効化する:
+4. （任意）仮想環境を有効化する。以降のコマンドは `uv run` 経由でも実行できる:
 
    ```bash
    # Linux/macOSの場合
-   source venv/bin/activate
+   source .venv/bin/activate
    # Windowsの場合
-   venv\Scripts\activate
-   ```
-
-5. Python の依存関係をインストールする:
-
-   ```bash
-   pip install -r requirements.txt
+   .venv\Scripts\activate
    ```
 
 ## 開発時の実装規則
@@ -76,12 +72,12 @@
   - **AWS CloudFormation**: ビルドアーティファクト(`packaged.yaml`)を用いたサーバーレスアプリケーションのデプロイ
 
   ```bash
-  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+  uv run pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
   ```
 
 - AWS Lambda 関数間で共通する処理は Lambda レイヤーとして lambdas/layer に実装し、コードの重複を避ける。
   ```bash
-  pylint lambdas/**/*.py
+  uv run pylint lambdas/**/*.py
   ```
 
 ## コミット・プルリクエストのワークフロー
@@ -102,20 +98,21 @@
 
 - [ ] 以下のコマンドを実行して、すべてのユニットテストが成功し、カバレッジを 80% 以上にする:
   ```bash
-  pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
+  uv run pytest --cov=lambdas --cov-report=term-missing --cov-fail-under=80 lambdas/tests
   ```
 - [ ] 以下のコマンドを実行して、Pylint の警告・エラーをすべて解消する:
   ```bash
-  pylint lambdas/**/*.py
+  uv run pylint lambdas/**/*.py
   ```
 - [ ] ターゲットを main ブランチに設定している。
 
 ## Python の依存関係管理
 
-本システムでは、セキュリティの脆弱性や新機能に対応するように定期的にパッケージのバージョンアップを自動的に提案する GitHub の機能である GitHub Dependabot を使用して、Python パッケージの依存関係を `requirements.txt` として管理する。
+本システムでは、[uv](https://docs.astral.sh/uv/) を用いて Python パッケージの依存関係を `pyproject.toml` と `uv.lock` で管理する。
+セキュリティの脆弱性や新機能に対応するように定期的にパッケージのバージョンアップを自動的に提案する GitHub Dependabot（`package-ecosystem: "uv"`）を使用する。
 GitHub Dependabot は以下の実行方式に従い、`.github/dependabot.yaml`で管理する:
 
 - **実行スケジュール**: 毎週火曜日 10:00 (Asia/Tokyo)
-- **対象ファイル**: `requirements.txt`
+- **対象ファイル**: `pyproject.toml` / `uv.lock`
 - **更新方式**: プルリクエストによる自動提案
 - **レビュー担当**: 指定されたリポジトリ管理者
