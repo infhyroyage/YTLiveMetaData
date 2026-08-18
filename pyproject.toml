@@ -5,7 +5,7 @@ description = "YouTube Live Metadata Notification - serverless SMS notifier"
 requires-python = ">=3.12"
 dependencies = [
     "boto3==1.43.7",
-    "requests==2.33.1",
+    "requests==2.34.2",
 ]
 
 [dependency-groups]
