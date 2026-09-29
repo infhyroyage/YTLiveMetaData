@@ -11,7 +11,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aws-sam-cli==1.162.1",
-    "pylint==4.0.8",
+    "pylint==4.0.9",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
 ]
